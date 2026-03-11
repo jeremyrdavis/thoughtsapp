@@ -1,0 +1,188 @@
+/* ==========================================================================
+   Red Hat Brand Custom Properties
+   ========================================================================== */
+
+:root {
+    --rh-red: #EE0000;
+    --rh-black: #151515;
+    --rh-white: #FFFFFF;
+    --rh-gray-dark: #6A6E73;
+    --rh-gray-mid: #D2D2D2;
+    --rh-gray-light: #F0F0F0;
+}
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+body {
+    font-family: 'Red Hat Text', sans-serif;
+    line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Red Hat Display', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.display-1, .display-2, .display-3,
+.display-4, .display-5, .display-6 {
+    font-family: 'Red Hat Display', sans-serif;
+}
+
+.form-control,
+.form-label,
+.nav-link,
+.form-text {
+    font-family: 'Red Hat Text', sans-serif;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.lead {
+    font-family: 'Red Hat Text', sans-serif;
+}
+
+/* ==========================================================================
+   Navbar Branding
+   ========================================================================== */
+
+.navbar.bg-dark {
+    background-color: var(--rh-red) !important;
+}
+
+.navbar-brand {
+    font-family: 'Red Hat Display', sans-serif;
+    font-weight: 700;
+}
+
+/* ==========================================================================
+   Footer
+   ========================================================================== */
+
+footer {
+    background-color: var(--rh-black);
+    color: var(--rh-white);
+    font-family: 'Red Hat Text', sans-serif;
+    padding: 1rem 0;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* ==========================================================================
+   Button and Badge Color Overrides
+   ========================================================================== */
+
+.btn-primary {
+    background-color: var(--rh-red);
+    border-color: var(--rh-red);
+    color: var(--rh-white);
+}
+
+.btn-primary:hover {
+    background-color: #CC0000;
+    border-color: #CC0000;
+    color: var(--rh-white);
+}
+
+.btn-primary:active,
+.btn-primary:focus-visible {
+    background-color: #AA0000;
+    border-color: #AA0000;
+    color: var(--rh-white);
+}
+
+.btn-outline-primary {
+    border-color: var(--rh-red);
+    color: var(--rh-red);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--rh-red);
+    border-color: var(--rh-red);
+    color: var(--rh-white);
+}
+
+.bg-primary {
+    background-color: var(--rh-red) !important;
+}
+
+/* ==========================================================================
+   Form Focus State Overrides
+   ========================================================================== */
+
+.form-control:focus {
+    border-color: var(--rh-red);
+    box-shadow: 0 0 0 0.25rem rgba(238, 0, 0, 0.25);
+}
+
+/* ==========================================================================
+   Table Link Color Overrides
+   ========================================================================== */
+
+table a {
+    color: var(--rh-red);
+    text-decoration: none;
+}
+
+table a:hover {
+    color: #AA0000;
+    text-decoration: underline;
+}
+
+/* ==========================================================================
+   Stat Card Enhancements (Gradients, Shadows, Border Radius)
+   ========================================================================== */
+
+.card.bg-primary {
+    background: linear-gradient(135deg, #EE0000, #A30000) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.bg-success {
+    background: linear-gradient(135deg, #198754, #0f5132) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.bg-danger {
+    background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.bg-info {
+    background: linear-gradient(135deg, #0dcaf0, #087990) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.border-success {
+    background: linear-gradient(135deg, rgba(25, 135, 84, 0.05), rgba(25, 135, 84, 0.12));
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.border-danger {
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.05), rgba(220, 53, 69, 0.12));
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+.card.border-warning {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.05), rgba(255, 193, 7, 0.12));
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 0.5rem;
+}
+
+/* ==========================================================================
+   Icon Spacing in Card Titles
+   ========================================================================== */
+
+.card-title i {
+    margin-right: 0.4rem;
+}
