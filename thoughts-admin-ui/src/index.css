@@ -1,0 +1,114 @@
+@import url('https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@700&family=Red+Hat+Text:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 8%;
+
+    --primary: 0 100% 47%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 0 100% 40%;
+    --primary-active: 0 100% 33%;
+
+    --secondary: 0 0% 94%;
+    --secondary-foreground: 0 0% 8%;
+
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 43%;
+
+    --accent: 0 0% 94%;
+    --accent-foreground: 0 0% 8%;
+
+    --destructive: 354 70% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 63% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 45 100% 51%;
+    --warning-foreground: 0 0% 8%;
+
+    --border: 0 0% 82%;
+    --input: 0 0% 82%;
+    --ring: 0 100% 47%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 0 100% 47%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 94%;
+    --sidebar-accent-foreground: 0 0% 8%;
+    --sidebar-border: 0 0% 82%;
+    --sidebar-ring: 0 100% 47%;
+
+    --nav-bg: 0 100% 47%;
+    --nav-foreground: 0 0% 100%;
+    --footer-bg: 0 0% 8%;
+    --footer-foreground: 0 0% 100%;
+
+    --table-header-bg: 0 0% 13%;
+    --table-header-foreground: 0 0% 100%;
+
+    --gradient-primary: linear-gradient(135deg, #EE0000, #A30000);
+    --gradient-success: linear-gradient(135deg, #198754, #0f5132);
+    --gradient-danger: linear-gradient(135deg, #dc3545, #a71d2a);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Red Hat Display', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply rounded-lg p-6 shadow-md text-primary-foreground;
+  }
+  .stat-card-primary {
+    background: var(--gradient-primary);
+  }
+  .stat-card-success {
+    background: var(--gradient-success);
+  }
+  .stat-card-danger {
+    background: var(--gradient-danger);
+  }
+  .table-header {
+    @apply bg-foreground text-primary-foreground;
+  }
+  .status-badge-approved {
+    @apply bg-success text-success-foreground px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .status-badge-rejected {
+    @apply bg-destructive text-destructive-foreground px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .status-badge-in-review {
+    @apply bg-warning text-warning-foreground px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  .form-focus {
+    @apply focus:ring-2 focus:ring-primary/25 focus:border-primary;
+  }
+}
