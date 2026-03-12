@@ -1,16 +1,24 @@
 package com.redhat.demos.thoughts.admin.resource;
 
+import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
 import com.redhat.demos.thoughts.admin.model.Thought;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Path("/ratings")
 @Produces(MediaType.TEXT_HTML)
 public class RatingsResource {
+
+    @Inject
+    @RestClient
+    ThoughtBackendClient backendClient;
 
     @CheckedTemplate
     public static class Templates {
@@ -22,14 +30,16 @@ public class RatingsResource {
 
     @GET
     public TemplateInstance ratings(@QueryParam("sort") @DefaultValue("most-rated") String sort) {
-        String orderClause = switch (sort) {
-            case "most-liked" -> "ORDER BY thumbsUp DESC";
-            case "most-disliked" -> "ORDER BY thumbsDown DESC";
-            default -> "ORDER BY (thumbsUp + thumbsDown) DESC";
+        List<Thought> thoughts = backendClient.list(0, 10000);
+
+        Comparator<Thought> comparator = switch (sort) {
+            case "most-liked" -> Comparator.comparingInt((Thought t) -> t.thumbsUp).reversed();
+            case "most-disliked" -> Comparator.comparingInt((Thought t) -> t.thumbsDown).reversed();
+            default -> Comparator.comparingInt((Thought t) -> t.thumbsUp + t.thumbsDown).reversed();
         };
 
-        List<Thought> thoughts = Thought.find(orderClause).list();
+        List<Thought> sorted = thoughts.stream().sorted(comparator).toList();
 
-        return Templates.ratings(thoughts, sort);
+        return Templates.ratings(sorted, sort);
     }
 }

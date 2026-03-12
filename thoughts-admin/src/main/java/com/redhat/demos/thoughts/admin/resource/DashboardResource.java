@@ -1,19 +1,26 @@
 package com.redhat.demos.thoughts.admin.resource;
 
+import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
 import com.redhat.demos.thoughts.admin.model.Thought;
 import com.redhat.demos.thoughts.admin.model.ThoughtStatus;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Path("/")
 @Produces(MediaType.TEXT_HTML)
 public class DashboardResource {
+
+    @RestClient
+    ThoughtBackendClient backendClient;
 
     @CheckedTemplate
     public static class Templates {
@@ -30,27 +37,24 @@ public class DashboardResource {
 
     @GET
     public TemplateInstance dashboard() {
-        long totalThoughts = Thought.count();
+        List<Thought> all = backendClient.list(0, 10000);
 
-        Long thumbsUpSum = Thought.getEntityManager()
-                .createQuery("SELECT COALESCE(SUM(t.thumbsUp), 0) FROM Thought t", Long.class)
-                .getSingleResult();
-        Long thumbsDownSum = Thought.getEntityManager()
-                .createQuery("SELECT COALESCE(SUM(t.thumbsDown), 0) FROM Thought t", Long.class)
-                .getSingleResult();
+        long totalThoughts = all.size();
+        long totalThumbsUp = all.stream().mapToInt(t -> t.thumbsUp).sum();
+        long totalThumbsDown = all.stream().mapToInt(t -> t.thumbsDown).sum();
+        long approvedCount = all.stream().filter(t -> t.status == ThoughtStatus.APPROVED).count();
+        long rejectedCount = all.stream().filter(t -> t.status == ThoughtStatus.REJECTED).count();
+        long inReviewCount = all.stream().filter(t -> t.status == ThoughtStatus.IN_REVIEW).count();
 
-        long approvedCount = Thought.count("status", ThoughtStatus.APPROVED);
-        long rejectedCount = Thought.count("status", ThoughtStatus.REJECTED);
-        long inReviewCount = Thought.count("status", ThoughtStatus.IN_REVIEW);
-
-        List<Thought> recentThoughts = Thought.find("ORDER BY updatedAt DESC")
-                .page(0, 5)
-                .list();
+        List<Thought> recentThoughts = all.stream()
+                .sorted(Comparator.comparing((Thought t) -> t.updatedAt).reversed())
+                .limit(5)
+                .toList();
 
         return Templates.dashboard(
                 totalThoughts,
-                thumbsUpSum,
-                thumbsDownSum,
+                totalThumbsUp,
+                totalThumbsDown,
                 approvedCount,
                 rejectedCount,
                 inReviewCount,

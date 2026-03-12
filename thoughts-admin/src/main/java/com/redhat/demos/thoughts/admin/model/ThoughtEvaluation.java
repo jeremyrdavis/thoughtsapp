@@ -3,6 +3,7 @@ package com.redhat.demos.thoughts.admin.model;
 import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -38,10 +39,6 @@ public class ThoughtEvaluation extends PanacheEntityBase {
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")
     public String metadata;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "thought_id", insertable = false, updatable = false)
-    public Thought thought;
 
     @PrePersist
     public void prePersist() {

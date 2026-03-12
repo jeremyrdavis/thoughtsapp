@@ -1,24 +1,36 @@
 package com.redhat.demos.thoughts.admin.resource;
 
+import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
+import com.redhat.demos.thoughts.admin.model.Thought;
 import com.redhat.demos.thoughts.admin.model.ThoughtEvaluation;
 import com.redhat.demos.thoughts.admin.model.ThoughtStatus;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
+import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Path("/evaluations")
 @Produces(MediaType.TEXT_HTML)
 public class EvaluationResource {
 
+    @Inject
+    @RestClient
+    ThoughtBackendClient backendClient;
+
     @CheckedTemplate
     public static class Templates {
         public static native TemplateInstance evaluations(
                 List<ThoughtEvaluation> evaluations,
+                Map<UUID, Thought> thoughtMap,
                 int page,
                 int size,
                 boolean hasMore,
@@ -60,7 +72,11 @@ public class EvaluationResource {
 
         boolean hasMore = (long) (page + 1) * size < totalCount;
 
-        return Templates.evaluations(evaluationList, page, size, hasMore, totalCount,
+        List<Thought> allThoughts = backendClient.list(0, 10000);
+        Map<UUID, Thought> thoughtMap = allThoughts.stream()
+                .collect(Collectors.toMap(t -> t.id, t -> t));
+
+        return Templates.evaluations(evaluationList, thoughtMap, page, size, hasMore, totalCount,
                 status != null ? status : "");
     }
 

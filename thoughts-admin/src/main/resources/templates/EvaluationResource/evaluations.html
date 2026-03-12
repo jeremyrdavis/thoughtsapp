@@ -32,8 +32,8 @@
             {#for eval in evaluations}
             <tr>
                 <td>
-                    {#if eval.thought != null}
-                    <a href="/thoughts/{eval.thoughtId}">{eval.thought.truncatedContent(80)}</a>
+                    {#if thoughtMap.get(eval.thoughtId) != null}
+                    <a href="/thoughts/{eval.thoughtId}">{thoughtMap.get(eval.thoughtId).truncatedContent(80)}</a>
                     {#else}
                     <span class="text-muted">Content not available</span>
                     {/if}

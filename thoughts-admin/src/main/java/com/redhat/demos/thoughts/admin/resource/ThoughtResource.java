@@ -1,16 +1,17 @@
 package com.redhat.demos.thoughts.admin.resource;
 
+import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
 import com.redhat.demos.thoughts.admin.model.Thought;
 import com.redhat.demos.thoughts.admin.model.ThoughtEvaluation;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import jakarta.transaction.Transactional;
+import jakarta.inject.Inject;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.eclipse.microprofile.rest.client.inject.RestClient;
 
 import java.net.URI;
 import java.util.*;
@@ -18,6 +19,10 @@ import java.util.*;
 @Path("/thoughts")
 @Produces(MediaType.TEXT_HTML)
 public class ThoughtResource {
+
+    @Inject
+    @RestClient
+    ThoughtBackendClient backendClient;
 
     @Inject
     Validator validator;
@@ -55,11 +60,10 @@ public class ThoughtResource {
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") int size) {
 
-        List<Thought> thoughtList = Thought.find("ORDER BY createdAt DESC")
-                .page(page, size)
-                .list();
+        List<Thought> thoughtList = backendClient.list(page, size);
 
-        long totalCount = Thought.count();
+        List<Thought> allThoughts = backendClient.list(0, 10000);
+        long totalCount = allThoughts.size();
         boolean hasMore = (long) (page + 1) * size < totalCount;
 
         return Templates.thoughts(thoughtList, page, size, hasMore, totalCount);
@@ -68,10 +72,7 @@ public class ThoughtResource {
     @GET
     @Path("/{id}")
     public TemplateInstance detail(@PathParam("id") UUID id) {
-        Thought thought = Thought.findById(id);
-        if (thought == null) {
-            throw new WebApplicationException("Thought not found", Response.Status.NOT_FOUND);
-        }
+        Thought thought = backendClient.get(id);
 
         List<ThoughtEvaluation> evaluations = ThoughtEvaluation.find(
                 "thoughtId", id).list();
@@ -88,7 +89,6 @@ public class ThoughtResource {
     @POST
     @Path("/create")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Transactional
     public Object createThought(
             @FormParam("content") String content,
             @FormParam("author") String author,
@@ -113,35 +113,28 @@ public class ThoughtResource {
             );
         }
 
-        thought.persist();
-        return Response.seeOther(URI.create("/thoughts/" + thought.id)).build();
+        Thought created = backendClient.create(thought);
+        return Response.seeOther(URI.create("/thoughts/" + created.id)).build();
     }
 
     @GET
     @Path("/{id}/edit")
     public TemplateInstance editForm(@PathParam("id") UUID id) {
-        Thought thought = Thought.findById(id);
-        if (thought == null) {
-            throw new WebApplicationException("Thought not found", Response.Status.NOT_FOUND);
-        }
+        Thought thought = backendClient.get(id);
         return Templates.edit(thought, Map.of());
     }
 
     @POST
     @Path("/{id}/edit")
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Transactional
     public Object editThought(
             @PathParam("id") UUID id,
             @FormParam("content") String content,
             @FormParam("author") String author,
             @FormParam("authorBio") String authorBio) {
 
-        Thought thought = Thought.findById(id);
-        if (thought == null) {
-            throw new WebApplicationException("Thought not found", Response.Status.NOT_FOUND);
-        }
-
+        Thought thought = new Thought();
+        thought.id = id;
         thought.content = content;
         thought.author = author;
         thought.authorBio = authorBio;
@@ -155,21 +148,14 @@ public class ThoughtResource {
             return Templates.edit(thought, errors);
         }
 
-        thought.persist();
-        return Response.seeOther(URI.create("/thoughts/" + thought.id)).build();
+        backendClient.update(id, thought);
+        return Response.seeOther(URI.create("/thoughts/" + id)).build();
     }
 
     @POST
     @Path("/{id}/delete")
-    @Transactional
     public Response delete(@PathParam("id") UUID id) {
-        Thought thought = Thought.findById(id);
-        if (thought == null) {
-            throw new WebApplicationException("Thought not found", Response.Status.NOT_FOUND);
-        }
-
-        ThoughtEvaluation.delete("thoughtId", id);
-        thought.delete();
+        backendClient.delete(id);
         return Response.seeOther(URI.create("/thoughts")).build();
     }
 }
