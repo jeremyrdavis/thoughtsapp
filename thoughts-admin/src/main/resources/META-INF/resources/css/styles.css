@@ -44,15 +44,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar {
     background-color: var(--rh-red) !important;
-    padding: 0;
-    min-height: 3.5rem;
-}
-
-.navbar > .container {
-    display: flex;
-    align-items: center;
-    gap: 2rem;
-    height: 3.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    padding: 0.5rem 0;
 }
 
 .navbar-brand {
@@ -60,17 +53,10 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
     font-size: 1.125rem;
     color: var(--rh-white) !important;
-    padding: 0;
-    margin: 0;
 }
 
 .navbar-brand:hover {
     color: var(--rh-white) !important;
-}
-
-.navbar-nav {
-    flex-direction: row;
-    gap: 0.25rem;
 }
 
 .navbar .nav-link {
@@ -114,6 +100,12 @@ footer {
 
 .content-area {
     padding: 2rem 0;
+}
+
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1400px;
+    }
 }
 
 /* ==========================================================================
@@ -246,22 +238,22 @@ footer {
 }
 
 .data-table a {
-    color: var(--rh-black);
+    color: var(--rh-red);
     text-decoration: none;
+    font-weight: 500;
 }
 
 .data-table a:hover {
+    color: var(--rh-red-darker);
     text-decoration: underline;
 }
 
-.text-success-bold {
+.text-success {
     color: var(--success);
-    font-weight: 600;
 }
 
-.text-destructive-bold {
+.text-destructive {
     color: var(--destructive);
-    font-weight: 600;
 }
 
 /* ==========================================================================
@@ -397,6 +389,11 @@ footer {
     font-size: 0.875rem;
 }
 
+.sort-group .btn.rounded-pill {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
 /* ==========================================================================
    Form Focus
    ========================================================================== */
@@ -431,4 +428,24 @@ footer {
     padding: 2rem 1rem;
     color: var(--rh-gray-dark);
     font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Info Banner
+   ========================================================================== */
+
+.info-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border: 1px solid rgba(238, 0, 0, 0.2);
+    background-color: rgba(238, 0, 0, 0.05);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.info-banner-icon {
+    font-size: 1.25rem;
+    color: var(--rh-red);
 }

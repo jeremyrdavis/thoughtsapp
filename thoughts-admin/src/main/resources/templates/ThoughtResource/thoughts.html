@@ -1,5 +1,6 @@
 {#include layout}
 {#title}Thoughts - Thoughts Admin{/title}
+{#thoughtsActive}active{/thoughtsActive}
 {#content}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="mb-0">Thoughts</h1>
@@ -35,8 +36,8 @@
                     <span class="status-badge status-badge-in-review">In Review</span>
                     {/if}
                 </td>
-                <td class="text-success-bold">{thought.thumbsUp}</td>
-                <td class="text-destructive-bold">{thought.thumbsDown}</td>
+                <td class="text-success">{thought.thumbsUp}</td>
+                <td class="text-destructive">{thought.thumbsDown}</td>
                 <td class="text-muted">{thought.createdAt}</td>
             </tr>
             {/for}

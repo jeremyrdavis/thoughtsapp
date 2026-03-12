@@ -2,6 +2,7 @@ package com.redhat.demos.thoughts.resource;
 
 import com.redhat.demos.thoughts.model.Thought;
 import com.redhat.demos.thoughts.service.ThoughtEventService;
+import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -43,6 +44,7 @@ public class ThoughtResource {
     public Response listThoughts(
             @QueryParam("page") @DefaultValue("0") int page,
             @QueryParam("size") @DefaultValue("20") int size) {
+        Log.debugf("Thoughts: %d", page);
         List<Thought> thoughts = Thought.findAll()
                 .page(page, size)
                 .list();

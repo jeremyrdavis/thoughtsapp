@@ -1,5 +1,6 @@
 {#include layout}
 {#title}Thought Detail - Thoughts Admin{/title}
+{#thoughtsActive}active{/thoughtsActive}
 {#content}
 <div class="mb-4">
     <a href="/thoughts" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i>Back to Thoughts</a>
@@ -44,11 +45,11 @@
         <div class="row g-4">
             <div class="col-sm-3">
                 <p class="detail-label">Thumbs Up</p>
-                <p class="text-success-bold fs-4 mb-0">{thought.thumbsUp}</p>
+                <p class="text-success fw-bold fs-4 mb-0">{thought.thumbsUp}</p>
             </div>
             <div class="col-sm-3">
                 <p class="detail-label">Thumbs Down</p>
-                <p class="text-destructive-bold fs-4 mb-0">{thought.thumbsDown}</p>
+                <p class="text-destructive fw-bold fs-4 mb-0">{thought.thumbsDown}</p>
             </div>
             <div class="col-sm-3">
                 <p class="detail-label">Created</p>
@@ -60,6 +61,12 @@
             </div>
         </div>
     </div>
+</div>
+
+<h2 class="mb-3">AI Evaluations</h2>
+<div class="info-banner">
+    <i class="bi bi-info-circle info-banner-icon"></i>
+    No evaluations available for this thought.
 </div>
 {/content}
 {/include}
