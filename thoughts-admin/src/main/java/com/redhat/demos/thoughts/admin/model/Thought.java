@@ -6,30 +6,29 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-public class Thought {
+public record Thought(
+        UUID id,
 
-    public UUID id;
+        @NotBlank(message = "Thought content cannot be blank")
+        @Size(min = 10, max = 500, message = "Thought content must be between 10 and 500 characters")
+        String content,
 
-    @NotBlank(message = "Thought content cannot be blank")
-    @Size(min = 10, max = 500, message = "Thought content must be between 10 and 500 characters")
-    public String content;
+        int thumbsUp,
 
-    public int thumbsUp;
+        int thumbsDown,
 
-    public int thumbsDown;
+        ThoughtStatus status,
 
-    public ThoughtStatus status;
+        @Size(max = 200, message = "Author must be no more than 200 characters")
+        String author,
 
-    @Size(max = 200, message = "Author must be no more than 200 characters")
-    public String author;
+        @Size(max = 200, message = "Author bio must be no more than 200 characters")
+        String authorBio,
 
-    @Size(max = 200, message = "Author bio must be no more than 200 characters")
-    public String authorBio;
+        LocalDateTime createdAt,
 
-    public LocalDateTime createdAt;
-
-    public LocalDateTime updatedAt;
-
+        LocalDateTime updatedAt
+) {
     public String truncatedContent(int maxLength) {
         if (content == null) {
             return "";

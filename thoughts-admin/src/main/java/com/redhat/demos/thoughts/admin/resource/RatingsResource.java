@@ -33,9 +33,9 @@ public class RatingsResource {
         List<Thought> thoughts = backendClient.list(0, 10000);
 
         Comparator<Thought> comparator = switch (sort) {
-            case "most-liked" -> Comparator.comparingInt((Thought t) -> t.thumbsUp).reversed();
-            case "most-disliked" -> Comparator.comparingInt((Thought t) -> t.thumbsDown).reversed();
-            default -> Comparator.comparingInt((Thought t) -> t.thumbsUp + t.thumbsDown).reversed();
+            case "most-liked" -> Comparator.comparingInt(Thought::thumbsUp).reversed();
+            case "most-disliked" -> Comparator.comparingInt(Thought::thumbsDown).reversed();
+            default -> Comparator.comparingInt((Thought t) -> t.thumbsUp() + t.thumbsDown()).reversed();
         };
 
         List<Thought> sorted = thoughts.stream().sorted(comparator).toList();

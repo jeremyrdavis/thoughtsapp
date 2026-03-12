@@ -3,9 +3,9 @@ package com.redhat.demos.thoughts.admin.resource;
 import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
 import com.redhat.demos.thoughts.admin.model.Thought;
 import com.redhat.demos.thoughts.admin.model.ThoughtStatus;
+import io.quarkus.logging.Log;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
-import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
@@ -40,14 +40,20 @@ public class DashboardResource {
         List<Thought> all = backendClient.list(0, 10000);
 
         long totalThoughts = all.size();
-        long totalThumbsUp = all.stream().mapToInt(t -> t.thumbsUp).sum();
-        long totalThumbsDown = all.stream().mapToInt(t -> t.thumbsDown).sum();
-        long approvedCount = all.stream().filter(t -> t.status == ThoughtStatus.APPROVED).count();
-        long rejectedCount = all.stream().filter(t -> t.status == ThoughtStatus.REJECTED).count();
-        long inReviewCount = all.stream().filter(t -> t.status == ThoughtStatus.IN_REVIEW).count();
+        Log.debugf("Thoughts: %d", totalThoughts);
+        long totalThumbsUp = all.stream().mapToInt(Thought::thumbsUp).sum();
+        Log.debugf("ThumbsUp: %d", totalThumbsUp);
+        long totalThumbsDown = all.stream().mapToInt(Thought::thumbsDown).sum();
+        Log.debugf("ThumbsDown: %d", totalThumbsDown);
+        long approvedCount = all.stream().filter(t -> t.status() == ThoughtStatus.APPROVED).count();
+        Log.debugf("Approved: %d", approvedCount);
+        long rejectedCount = all.stream().filter(t -> t.status() == ThoughtStatus.REJECTED).count();
+        Log.debugf("Rejected: %d", rejectedCount);
+        long inReviewCount = all.stream().filter(t -> t.status() == ThoughtStatus.IN_REVIEW).count();
+        Log.debugf("InReview: %d", inReviewCount);
 
         List<Thought> recentThoughts = all.stream()
-                .sorted(Comparator.comparing((Thought t) -> t.updatedAt).reversed())
+                .sorted(Comparator.comparing(Thought::updatedAt).reversed())
                 .limit(5)
                 .toList();
 

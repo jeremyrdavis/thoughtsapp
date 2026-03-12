@@ -29,9 +29,8 @@ public class ThoughtApiResource {
 
     @GET
     @Path("/{id}")
-    public Response get(@PathParam("id") UUID id) {
-        Thought thought = backendClient.get(id);
-        return Response.ok(thought).build();
+    public Thought get(@PathParam("id") UUID id) {
+        return backendClient.get(id);
     }
 
     @POST
@@ -42,9 +41,8 @@ public class ThoughtApiResource {
 
     @PUT
     @Path("/{id}")
-    public Response update(@PathParam("id") UUID id, Thought updated) {
-        Thought thought = backendClient.update(id, updated);
-        return Response.ok(thought).build();
+    public Thought update(@PathParam("id") UUID id, Thought updated) {
+        return backendClient.update(id, updated);
     }
 
     @DELETE
@@ -56,15 +54,13 @@ public class ThoughtApiResource {
 
     @POST
     @Path("/thumbsup/{id}")
-    public Response thumbsUp(@PathParam("id") UUID id) {
-        Thought thought = backendClient.thumbsUp(id);
-        return Response.ok(thought).build();
+    public Thought thumbsUp(@PathParam("id") UUID id) {
+        return backendClient.thumbsUp(id);
     }
 
     @POST
     @Path("/thumbsdown/{id}")
-    public Response thumbsDown(@PathParam("id") UUID id) {
-        Thought thought = backendClient.thumbsDown(id);
-        return Response.ok(thought).build();
+    public Thought thumbsDown(@PathParam("id") UUID id) {
+        return backendClient.thumbsDown(id);
     }
 }

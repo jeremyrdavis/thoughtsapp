@@ -3,55 +3,61 @@
 {#content}
 <h1 class="mb-4">Dashboard</h1>
 
-<div class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-lightbulb"></i> Total Thoughts</h5>
-                <p class="card-text display-4">{totalThoughts}</p>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card stat-card-primary">
+            <i class="bi bi-lightbulb stat-icon"></i>
+            <div>
+                <p class="stat-label">Total Thoughts</p>
+                <p class="stat-value">{totalThoughts}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-hand-thumbs-up"></i> Total Thumbs Up</h5>
-                <p class="card-text display-4">{totalThumbsUp}</p>
+    <div class="col-md-4">
+        <div class="stat-card stat-card-success">
+            <i class="bi bi-hand-thumbs-up stat-icon"></i>
+            <div>
+                <p class="stat-label">Total Thumbs Up</p>
+                <p class="stat-value">{totalThumbsUp}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card text-white bg-danger">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-hand-thumbs-down"></i> Total Thumbs Down</h5>
-                <p class="card-text display-4">{totalThumbsDown}</p>
+    <div class="col-md-4">
+        <div class="stat-card stat-card-danger">
+            <i class="bi bi-hand-thumbs-down stat-icon"></i>
+            <div>
+                <p class="stat-label">Total Thumbs Down</p>
+                <p class="stat-value">{totalThumbsDown}</p>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-4 mb-3">
-        <div class="card border-success">
-            <div class="card-body text-center">
-                <h6 class="card-title text-success"><i class="bi bi-check-circle"></i> Approved</h6>
-                <p class="card-text display-6">{approvedCount}</p>
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="status-card status-card-approved border">
+            <i class="bi bi-check-circle status-icon"></i>
+            <div>
+                <p class="status-label">Approved</p>
+                <p class="status-count">{approvedCount}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card border-danger">
-            <div class="card-body text-center">
-                <h6 class="card-title text-danger"><i class="bi bi-x-circle"></i> Rejected</h6>
-                <p class="card-text display-6">{rejectedCount}</p>
+    <div class="col-md-4">
+        <div class="status-card status-card-rejected border">
+            <i class="bi bi-x-circle status-icon"></i>
+            <div>
+                <p class="status-label">Rejected</p>
+                <p class="status-count">{rejectedCount}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-4 mb-3">
-        <div class="card border-warning">
-            <div class="card-body text-center">
-                <h6 class="card-title text-warning"><i class="bi bi-hourglass-split"></i> In Review</h6>
-                <p class="card-text display-6">{inReviewCount}</p>
+    <div class="col-md-4">
+        <div class="status-card status-card-in-review border">
+            <i class="bi bi-hourglass-split status-icon"></i>
+            <div>
+                <p class="status-label">In Review</p>
+                <p class="status-count">{inReviewCount}</p>
             </div>
         </div>
     </div>
@@ -59,11 +65,11 @@
 
 <h2 class="mb-3">Recent Activity</h2>
 {#if recentThoughts.isEmpty()}
-<div class="alert alert-info">No thoughts yet.</div>
+<p class="empty-message">No thoughts yet.</p>
 {#else}
-<div class="table-responsive">
-    <table class="table table-striped table-hover">
-        <thead class="table-dark">
+<div class="data-table-wrap">
+    <table class="data-table">
+        <thead>
             <tr>
                 <th>Content</th>
                 <th>Author</th>
@@ -78,14 +84,14 @@
                 <td>{thought.author}</td>
                 <td>
                     {#if thought.status.name() == 'APPROVED'}
-                    <span class="badge bg-success">{thought.status}</span>
+                    <span class="status-badge status-badge-approved">Approved</span>
                     {#else if thought.status.name() == 'REJECTED'}
-                    <span class="badge bg-danger">{thought.status}</span>
+                    <span class="status-badge status-badge-rejected">Rejected</span>
                     {#else}
-                    <span class="badge bg-warning text-dark">{thought.status}</span>
+                    <span class="status-badge status-badge-in-review">In Review</span>
                     {/if}
                 </td>
-                <td>{thought.updatedAt}</td>
+                <td class="text-muted">{thought.updatedAt}</td>
             </tr>
             {/for}
         </tbody>

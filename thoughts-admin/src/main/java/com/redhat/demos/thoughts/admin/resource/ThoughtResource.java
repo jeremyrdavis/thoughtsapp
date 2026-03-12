@@ -2,7 +2,6 @@ package com.redhat.demos.thoughts.admin.resource;
 
 import com.redhat.demos.thoughts.admin.client.ThoughtBackendClient;
 import com.redhat.demos.thoughts.admin.model.Thought;
-import com.redhat.demos.thoughts.admin.model.ThoughtEvaluation;
 import io.quarkus.qute.CheckedTemplate;
 import io.quarkus.qute.TemplateInstance;
 import jakarta.inject.Inject;
@@ -37,10 +36,7 @@ public class ThoughtResource {
                 long totalCount
         );
 
-        public static native TemplateInstance detail(
-                Thought thought,
-                List<ThoughtEvaluation> evaluations
-        );
+        public static native TemplateInstance detail(Thought thought);
 
         public static native TemplateInstance create(
                 String content,
@@ -73,11 +69,7 @@ public class ThoughtResource {
     @Path("/{id}")
     public TemplateInstance detail(@PathParam("id") UUID id) {
         Thought thought = backendClient.get(id);
-
-        List<ThoughtEvaluation> evaluations = ThoughtEvaluation.find(
-                "thoughtId", id).list();
-
-        return Templates.detail(thought, evaluations);
+        return Templates.detail(thought);
     }
 
     @GET
@@ -94,10 +86,7 @@ public class ThoughtResource {
             @FormParam("author") String author,
             @FormParam("authorBio") String authorBio) {
 
-        Thought thought = new Thought();
-        thought.content = content;
-        thought.author = author;
-        thought.authorBio = authorBio;
+        Thought thought = new Thought(null, content, 0, 0, null, author, authorBio, null, null);
 
         Set<ConstraintViolation<Thought>> violations = validator.validate(thought);
         if (!violations.isEmpty()) {
@@ -114,7 +103,7 @@ public class ThoughtResource {
         }
 
         Thought created = backendClient.create(thought);
-        return Response.seeOther(URI.create("/thoughts/" + created.id)).build();
+        return Response.seeOther(URI.create("/thoughts/" + created.id())).build();
     }
 
     @GET
@@ -133,11 +122,7 @@ public class ThoughtResource {
             @FormParam("author") String author,
             @FormParam("authorBio") String authorBio) {
 
-        Thought thought = new Thought();
-        thought.id = id;
-        thought.content = content;
-        thought.author = author;
-        thought.authorBio = authorBio;
+        Thought thought = new Thought(id, content, 0, 0, null, author, authorBio, null, null);
 
         Set<ConstraintViolation<Thought>> violations = validator.validate(thought);
         if (!violations.isEmpty()) {

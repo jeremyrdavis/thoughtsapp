@@ -1,18 +1,17 @@
 {#include layout}
 {#title}Edit Thought - Thoughts Admin{/title}
 {#content}
-<h1 class="mb-4">Edit Thought</h1>
-
-<div class="card">
-    <div class="card-body">
+<div class="form-wrapper">
+    <h1 class="mb-4">Edit Thought</h1>
+    <div class="form-card">
         <form method="POST" action="/thoughts/{thought.id}/edit">
             <div class="mb-3">
-                <label for="content" class="form-label">Content</label>
+                <label for="content" class="form-label">Content *</label>
                 <textarea class="form-control {#if errors.containsKey('content')}is-invalid{/if}" id="content" name="content" rows="4" required minlength="10" maxlength="500">{thought.content}</textarea>
                 {#if errors.containsKey('content')}
                 <div class="invalid-feedback">{errors.get('content')}</div>
                 {/if}
-                <div class="form-text">Between 10 and 500 characters.</div>
+                <div class="form-text">10-500 characters.</div>
             </div>
 
             <div class="mb-3">
@@ -31,7 +30,7 @@
                 {/if}
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-3">
                 <button type="submit" class="btn btn-primary">Save Changes</button>
                 <a href="/thoughts/{thought.id}" class="btn btn-outline-secondary">Cancel</a>
             </div>
