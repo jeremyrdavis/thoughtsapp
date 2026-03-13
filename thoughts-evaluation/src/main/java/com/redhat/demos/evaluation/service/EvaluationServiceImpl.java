@@ -9,6 +9,7 @@ import com.redhat.demos.evaluation.model.VectorType;
 import com.redhat.demos.evaluation.util.VectorDataParser;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -27,7 +28,6 @@ import java.util.UUID;
 @ApplicationScoped
 public class EvaluationServiceImpl implements EvaluationService {
 
-    private static final Logger LOG = Logger.getLogger(EvaluationServiceImpl.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
@@ -46,7 +46,7 @@ public class EvaluationServiceImpl implements EvaluationService {
     public ThoughtEvaluation evaluateThought(UUID thoughtId, String thoughtContent) {
         String correlationId = UUID.randomUUID().toString();
 
-        LOG.infof("[%s] Starting evaluation for thought %s", correlationId, thoughtId);
+        Log.infof("[%s] Starting evaluation for thought %s", correlationId, thoughtId);
 
         try {
             // Generate embedding for the thought
@@ -55,7 +55,7 @@ public class EvaluationServiceImpl implements EvaluationService {
             // Retrieve all negative vectors from database
             List<EvaluationVector> negativeVectors = EvaluationVector.list("vectorType", VectorType.NEGATIVE);
 
-            LOG.infof("[%s] Retrieved %d negative vectors for comparison", correlationId, negativeVectors.size());
+            Log.infof("[%s] Retrieved %d negative vectors for comparison", correlationId, negativeVectors.size());
 
             // Calculate similarity with each negative vector
             double maxSimilarity = 0.0;
@@ -65,7 +65,7 @@ public class EvaluationServiceImpl implements EvaluationService {
                 float[] negativeEmbedding = VectorDataParser.parseVectorData(negativeVector.vectorData);
                 double similarity = vectorSimilarityService.calculateCosineSimilarity(thoughtVector, negativeEmbedding);
 
-                LOG.debugf("[%s] Similarity with '%s': %.4f", correlationId, negativeVector.label, similarity);
+                Log.debugf("[%s] Similarity with '%s': %.4f", correlationId, negativeVector.label, similarity);
 
                 if (similarity > maxSimilarity) {
                     maxSimilarity = similarity;
@@ -78,18 +78,18 @@ public class EvaluationServiceImpl implements EvaluationService {
                 ? ThoughtStatus.REJECTED
                 : ThoughtStatus.APPROVED;
 
-            LOG.infof("[%s] Evaluation result: %s (max similarity: %.4f, threshold: %.2f)",
+            Log.infof("[%s] Evaluation result: %s (max similarity: %.4f, threshold: %.2f)",
                 correlationId, status, maxSimilarity, similarityThreshold);
 
             // Create and persist evaluation
             ThoughtEvaluation evaluation = createEvaluation(thoughtId, status, maxSimilarity, matchedLabel, correlationId);
 
-            LOG.infof("[%s] Evaluation completed and persisted with id %s", correlationId, evaluation.id);
+            Log.infof("[%s] Evaluation completed and persisted with id %s", correlationId, evaluation.id);
 
             return evaluation;
 
         } catch (Exception e) {
-            LOG.errorf(e, "[%s] Failed to evaluate thought %s", correlationId, thoughtId);
+            Log.errorf(e, "[%s] Failed to evaluate thought %s", correlationId, thoughtId);
             throw new RuntimeException("Evaluation failed: " + e.getMessage(), e);
         }
     }

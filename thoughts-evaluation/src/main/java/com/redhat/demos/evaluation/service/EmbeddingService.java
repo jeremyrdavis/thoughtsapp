@@ -4,6 +4,7 @@ import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
 import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.model.output.Response;
+import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -16,8 +17,6 @@ import java.util.UUID;
  */
 @ApplicationScoped
 public class EmbeddingService {
-
-    private static final Logger LOG = Logger.getLogger(EmbeddingService.class);
 
     @Inject
     EmbeddingModel embeddingModel;
@@ -34,24 +33,24 @@ public class EmbeddingService {
     public float[] generateEmbedding(String text) {
         String correlationId = UUID.randomUUID().toString();
 
-        LOG.infof("[%s] Generating embedding for text of length %d", correlationId, text.length());
+        Log.infof("[%s] Generating embedding for text of length %d", correlationId, text.length());
 
         try {
             Response<Embedding> response = embeddingModel.embed(TextSegment.from(text));
 
             if (response == null || response.content() == null) {
-                LOG.errorf("[%s] Embedding model returned null response", correlationId);
+                Log.errorf("[%s] Embedding model returned null response", correlationId);
                 throw new RuntimeException("Embedding model returned null response");
             }
 
             float[] vector = response.content().vector();
 
-            LOG.infof("[%s] Successfully generated embedding with dimension %d", correlationId, vector.length);
+            Log.infof("[%s] Successfully generated embedding with dimension %d", correlationId, vector.length);
 
             return vector;
 
         } catch (Exception e) {
-            LOG.errorf(e, "[%s] Failed to generate embedding", correlationId);
+            Log.errorf(e, "[%s] Failed to generate embedding", correlationId);
             throw new RuntimeException("Failed to generate embedding: " + e.getMessage(), e);
         }
     }

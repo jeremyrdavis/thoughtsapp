@@ -3,6 +3,7 @@ package com.redhat.demos.evaluation.consumer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.demos.evaluation.dto.ThoughtEvent;
 import com.redhat.demos.evaluation.service.EvaluationService;
+import io.quarkus.logging.Log;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -19,7 +20,6 @@ import java.util.UUID;
 @ApplicationScoped
 public class ThoughtEvaluationConsumer {
 
-    private static final Logger LOG = Logger.getLogger(ThoughtEvaluationConsumer.class);
     private static final String EVENT_TYPE_CREATED = "CREATED";
 
     @Inject
@@ -32,27 +32,24 @@ public class ThoughtEvaluationConsumer {
      * Consumes thought events from Kafka and processes thought-created events only.
      * Events are received as JSON strings and deserialized to ThoughtEvent objects.
      *
-     * @param eventJson the raw JSON event string from Kafka
+     * @param event the ThoughtEvent DTO from Kafka
      */
     @Incoming("thoughts-events")
     @Blocking
-    public void consumeThoughtEvent(String eventJson) {
+    public void consumeThoughtEvent(ThoughtEvent event) {
         UUID correlationId = UUID.randomUUID();
 
         try {
-            LOG.debugf("[%s] Received event: %s", correlationId, eventJson);
-
-            // Deserialize the event
-            ThoughtEvent event = deserializeEvent(eventJson);
+            Log.debugf("[%s] Received event: %s", correlationId, event);
 
             if (event == null) {
-                LOG.warnf("[%s] Failed to deserialize event, skipping", correlationId);
+                Log.warnf("[%s] Failed to deserialize event, skipping", correlationId);
                 return;
             }
 
             // Filter for thought-created events only
             if (!isCreatedEvent(event)) {
-                LOG.debugf("[%s] Ignoring non-created event type: %s for thought: %s",
+                Log.debugf("[%s] Ignoring non-created event type: %s for thought: %s",
                     correlationId, event.getEventType(), event.getThoughtId());
                 return;
             }
@@ -62,20 +59,20 @@ public class ThoughtEvaluationConsumer {
             String thoughtContent = event.getThoughtContent();
 
             if (thoughtId == null || thoughtContent == null || thoughtContent.trim().isEmpty()) {
-                LOG.warnf("[%s] Event missing required fields (thoughtId or content), skipping", correlationId);
+                Log.warnf("[%s] Event missing required fields (thoughtId or content), skipping", correlationId);
                 return;
             }
 
-            LOG.infof("[%s] Processing thought-created event for thought: %s", correlationId, thoughtId);
+            Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, thoughtId);
 
             // Delegate to evaluation service
             evaluationService.evaluateThought(thoughtId, thoughtContent);
 
-            LOG.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
+            Log.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
 
         } catch (Exception e) {
             // Log error but don't rethrow - consumer should continue processing subsequent messages
-            LOG.errorf(e, "[%s] Error processing thought event: %s", correlationId, e.getMessage());
+            Log.errorf(e, "[%s] Error processing thought event: %s", correlationId, e.getMessage());
         }
     }
 
@@ -90,7 +87,7 @@ public class ThoughtEvaluationConsumer {
         try {
             return objectMapper.readValue(eventJson, ThoughtEvent.class);
         } catch (Exception e) {
-            LOG.warnf("Failed to deserialize event JSON: %s - Error: %s", eventJson, e.getMessage());
+            Log.warnf("Failed to deserialize event JSON: %s - Error: %s", eventJson, e.getMessage());
             return null;
         }
     }
