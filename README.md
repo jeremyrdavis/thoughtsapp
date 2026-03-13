@@ -155,17 +155,62 @@ cd msa-ai-admin
 npm install && npm run dev
 ```
 
-### Environment Variables (Production)
+### Environment Variables
 
-| Variable | Description |
-|---|---|
-| `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL connection URL |
-| `QUARKUS_DATASOURCE_USERNAME` | Database username |
-| `QUARKUS_DATASOURCE_PASSWORD` | Database password |
-| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker addresses |
-| `OPENSHIFT_AI_ENDPOINT_URL` | OpenShift AI LLM endpoint |
-| `OPENSHIFT_AI_API_KEY` | API key for LLM endpoint |
-| `EVALUATION_SIMILARITY_THRESHOLD` | Cosine similarity threshold (default: 0.85) |
+In dev mode, Quarkus dev services automatically provision PostgreSQL and Kafka -- no environment variables are needed. For production or manual configuration, set the variables below.
+
+#### thoughts-backend (Quarkus REST API)
+
+| Variable | Description | Default |
+|---|---|---|
+| `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL JDBC connection URL | (dev services) |
+| `QUARKUS_DATASOURCE_USERNAME` | Database username | (dev services) |
+| `QUARKUS_DATASOURCE_PASSWORD` | Database password | (dev services) |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | (dev services) |
+| `LLM_ENDPOINT_URL` | LLM embeddings endpoint URL | `http://localhost:8080/v1/embeddings` |
+| `EVALUATION_SIMILARITY_THRESHOLD` | Cosine similarity threshold (0.0-1.0) | `0.85` |
+
+#### thoughts-evaluation (Quarkus AI Service)
+
+| Variable | Description | Default |
+|---|---|---|
+| `QUARKUS_DATASOURCE_JDBC_URL` | PostgreSQL JDBC connection URL | (dev services) |
+| `QUARKUS_DATASOURCE_USERNAME` | Database username | (dev services) |
+| `QUARKUS_DATASOURCE_PASSWORD` | Database password | (dev services) |
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | (dev services) |
+| `KAFKA_THOUGHTS_TOPIC` | Kafka topic for thought events | `thoughts.events` |
+| `OPENSHIFT_AI_ENDPOINT_URL` | OpenShift AI embedding service base URL | `http://localhost:8080` |
+| `OPENSHIFT_AI_API_KEY` | API key for OpenShift AI | `dummy-key` |
+| `EMBEDDING_MODEL_NAME` | Model name for embeddings | `text-embedding-ada-002` |
+| `EVALUATION_SIMILARITY_THRESHOLD` | Cosine similarity threshold (0.0-1.0) | `0.85` |
+
+#### thoughts-admin (Quarkus Admin UI)
+
+| Variable | Description | Default |
+|---|---|---|
+| `THOUGHT_BACKEND_CLIENT_URL` | Base URL for thoughts-backend REST client | `http://localhost:8080` |
+
+#### thoughts-frontend (Next.js Consumer UI)
+
+| Variable | Description | Default |
+|---|---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | Base URL for thoughts-backend REST API | `http://localhost:8080` |
+
+#### Infrastructure Setup Scripts (OpenShift)
+
+These variables are used by the setup scripts in `infrastructure/`.
+
+| Variable | Description | Default |
+|---|---|---|
+| `POSTGRESQL_USER` | Database username | `thoughts` |
+| `POSTGRESQL_PASSWORD` | Database password | `thoughts` |
+| `POSTGRESQL_DATABASE` | Database name | `thoughts_db` |
+| `POSTGRESQL_STORAGE_SIZE` | PVC storage size | `5Gi` |
+| `POSTGRESQL_IMAGE` | PostgreSQL container image | `registry.redhat.io/rhel9/postgresql-16:latest` |
+| `KAFKA_STORAGE_SIZE` | Kafka broker PVC size | `10Gi` |
+| `ZOOKEEPER_STORAGE_SIZE` | ZooKeeper PVC size | `5Gi` |
+| `KAFKA_REPLICAS` | Number of Kafka broker replicas | `1` |
+| `ZOOKEEPER_REPLICAS` | Number of ZooKeeper replicas | `1` |
 
 ## OpenShift Deployment
 
