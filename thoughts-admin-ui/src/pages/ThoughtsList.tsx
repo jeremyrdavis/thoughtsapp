@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Plus } from "lucide-react";
-import { fetchThoughts, type Thought } from "@/lib/api";
+import { fetchThoughts, fetchAllThoughts, type Thought } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -16,18 +16,55 @@ function formatDate(d: string) {
 
 const PAGE_SIZE = 20;
 
+const STATUS_FILTERS = [
+  { label: "All", value: "" },
+  { label: "Approved", value: "APPROVED" },
+  { label: "Rejected", value: "REJECTED" },
+  { label: "In Review", value: "IN_REVIEW" },
+] as const;
+
 export default function ThoughtsList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusFilter = searchParams.get("status") ?? "";
   const [page, setPage] = useState(0);
 
-  const { data: thoughts, isLoading, error } = useQuery<Thought[]>({
+  const pagedQuery = useQuery<Thought[]>({
     queryKey: ["thoughts", page],
     queryFn: () => fetchThoughts(page, PAGE_SIZE),
+    enabled: !statusFilter,
   });
+
+  const allQuery = useQuery<Thought[]>({
+    queryKey: ["thoughts-all"],
+    queryFn: fetchAllThoughts,
+    enabled: !!statusFilter,
+  });
+
+  const isLoading = statusFilter ? allQuery.isLoading : pagedQuery.isLoading;
+  const error = statusFilter ? allQuery.error : pagedQuery.error;
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <div className="text-destructive">Failed to load thoughts.</div>;
 
-  const list = thoughts ?? [];
+  let list: Thought[];
+  let hasMorePages: boolean;
+  if (statusFilter) {
+    const filtered = (allQuery.data ?? []).filter((t) => t.status === statusFilter);
+    list = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    hasMorePages = filtered.length > (page + 1) * PAGE_SIZE;
+  } else {
+    list = pagedQuery.data ?? [];
+    hasMorePages = list.length >= PAGE_SIZE;
+  }
+
+  function setFilter(value: string) {
+    setPage(0);
+    if (value) {
+      setSearchParams({ status: value });
+    } else {
+      setSearchParams({});
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -36,6 +73,19 @@ export default function ThoughtsList() {
         <Button asChild>
           <Link to="/thoughts/create"><Plus size={16} /> Create New Thought</Link>
         </Button>
+      </div>
+
+      <div className="flex gap-2">
+        {STATUS_FILTERS.map(({ label, value }) => (
+          <Button
+            key={value}
+            variant={statusFilter === value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </Button>
+        ))}
       </div>
 
       <div className="overflow-hidden rounded-lg border">
@@ -77,7 +127,7 @@ export default function ThoughtsList() {
           Previous
         </Button>
         <span className="text-sm text-muted-foreground">Page {page + 1}</span>
-        <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={list.length < PAGE_SIZE}>
+        <Button variant="outline" size="sm" onClick={() => setPage((p) => p + 1)} disabled={!hasMorePages}>
           Next
         </Button>
       </div>

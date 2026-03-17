@@ -1,6 +1,7 @@
 package com.redhat.demos.thoughts.resource;
 
 import com.redhat.demos.thoughts.model.Thought;
+import com.redhat.demos.thoughts.model.ThoughtStatus;
 import com.redhat.demos.thoughts.service.ThoughtEventService;
 import io.quarkus.logging.Log;
 import jakarta.inject.Inject;
@@ -25,6 +26,8 @@ public class ThoughtResource {
     @POST
     @Transactional
     public Response createThought(@Valid Thought thought) {
+        // set all new thoughts to in review
+        thought.status = ThoughtStatus.IN_REVIEW;
         thought.persist();
         eventService.publishThoughtCreated(thought);
         return Response.status(Response.Status.CREATED).entity(thought).build();

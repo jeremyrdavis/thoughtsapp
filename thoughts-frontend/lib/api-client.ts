@@ -78,4 +78,17 @@ export const apiClient = {
 
     return handleResponse<Thought>(response);
   },
+
+  // Create a new thought
+  async createThought(data: { content: string; author: string; authorBio: string }): Promise<Thought> {
+    const response = await fetch(`${API_BASE_URL}/thoughts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    return handleResponse<Thought>(response);
+  },
 };
