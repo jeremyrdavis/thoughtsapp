@@ -1,4 +1,5 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
+export const EVALUATION_API_BASE_URL = import.meta.env.VITE_EVALUATION_API_BASE_URL || "http://localhost:8088";
 
 export interface Thought {
   id: string;
@@ -73,4 +74,28 @@ export async function thumbsUp(id: string): Promise<Thought> {
 export async function thumbsDown(id: string): Promise<Thought> {
   const res = await fetch(`${API_BASE_URL}/thoughts/thumbsdown/${id}`, { method: "POST" });
   return handleResponse<Thought>(res);
+}
+
+export interface VectorStatus {
+  totalVectors: number;
+  positiveCount: number;
+  negativeCount: number;
+  initialized: boolean;
+}
+
+export interface VectorInitializationResult {
+  vectorsCreated: number;
+  positiveCount: number;
+  negativeCount: number;
+  message: string;
+}
+
+export async function fetchVectorStatus(): Promise<VectorStatus> {
+  const res = await fetch(`${EVALUATION_API_BASE_URL}/vectors/status`);
+  return handleResponse<VectorStatus>(res);
+}
+
+export async function initializeVectors(): Promise<VectorInitializationResult> {
+  const res = await fetch(`${EVALUATION_API_BASE_URL}/vectors/initialize`, { method: "POST" });
+  return handleResponse<VectorInitializationResult>(res);
 }

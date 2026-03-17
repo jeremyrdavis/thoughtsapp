@@ -1,38 +1,69 @@
 # AI Evaluation Service
 
-A Quarkus microservice that consumes thought-created events from Kafka, generates vector embeddings using Langchain4j and OpenShift AI, evaluates thoughts against predefined positive and negative vectors, and stores evaluation results in PostgreSQL.
+A Quarkus microservice that evaluates user-submitted "thoughts" for positive or negative sentiment using AI-generated vector embeddings and cosine similarity. It consumes thought-created events from Kafka, compares each thought against a set of reference vectors, and classifies thoughts as APPROVED or REJECTED.
 
-## Features
+## How It Works
 
-- Kafka consumer for thought-created events
-- Langchain4j integration for vector embeddings via OpenShift AI
-- Vector similarity comparison using cosine similarity
-- Automatic thought approval/rejection based on similarity thresholds
-- PostgreSQL storage for evaluation results and predefined vectors
-- REST API for retrieving evaluations and statistics
-- Web UI for displaying evaluation results
-- Health checks and Prometheus metrics
-- Retry logic with fault tolerance for LLM failures
+1. The `thoughts-backend` service publishes a Kafka event whenever a new thought is created.
+2. `ThoughtEvaluationConsumer` receives the event from the `thoughts.events` topic.
+3. `EmbeddingService` calls an OpenAI-compatible embedding model (e.g. hosted on OpenShift AI) via Langchain4j to generate a vector embedding of the thought's text content.
+4. `VectorSimilarityService` computes the cosine similarity between the thought's embedding and each pre-seeded reference vector stored in the `evaluation_vectors` table.
+5. If the thought's similarity to any **negative** reference vector exceeds the configured threshold (default 0.85), the thought is marked **REJECTED**. Otherwise it is **APPROVED**.
+6. The evaluation result (status, similarity score, timestamp) is persisted to the `thought_evaluations` table.
 
-## Tech Stack
+### Reference Vectors
 
-- Quarkus 3.31.2
-- Java 25
-- Langchain4j (Quarkus extension)
-- PostgreSQL with Hibernate Panache
-- Kafka with SmallRye Reactive Messaging
-- Qute templating for web UI
-- SmallRye Fault Tolerance for retry logic
-- Micrometer with Prometheus for observability
+The service uses 6 reference vectors — 3 positive, 3 negative — that define the evaluation baseline:
 
-## Configuration
+| Type | Label |
+|------|-------|
+| POSITIVE | Encouraging and uplifting language |
+| POSITIVE | Optimistic and hopeful perspective |
+| POSITIVE | Gratitude and appreciation expressions |
+| NEGATIVE | Hateful or discriminatory language |
+| NEGATIVE | Violent or threatening content |
+| NEGATIVE | Profanity and abusive language |
 
-Key configuration properties in `application.properties`:
+These are initially seeded by a Flyway migration (V3) with placeholder values. The `/vectors/initialize` endpoint regenerates them with real embeddings from the configured AI model.
 
-- `evaluation.similarity.threshold` - Cosine similarity threshold for rejection (default: 0.85)
-- `quarkus.langchain4j.openai.base-url` - OpenShift AI embedding model endpoint
-- `kafka.bootstrap.servers` - Kafka broker connection
-- Database connection properties for PostgreSQL
+## Requirements
+
+- **Java 25**
+- **Maven 3.9+**
+- **PostgreSQL** (Quarkus Dev Services auto-provisions one in dev/test mode)
+- **Apache Kafka** (Quarkus Dev Services auto-provisions one in dev/test mode)
+- **OpenAI-compatible embedding model endpoint** (e.g. OpenShift AI serving `text-embedding-ada-002`)
+
+## Environment Variables
+
+### Database (production only — dev/test use Quarkus Dev Services)
+
+| Variable | Description |
+|----------|-------------|
+| `QUARKUS_DATASOURCE_USERNAME` | PostgreSQL username |
+| `QUARKUS_DATASOURCE_PASSWORD` | PostgreSQL password |
+| `QUARKUS_DATASOURCE_JDBC_URL` | JDBC connection URL (e.g. `jdbc:postgresql://host:5432/dbname`) |
+
+### Kafka (production only)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `KAFKA_BOOTSTRAP_SERVERS` | Kafka broker address | — |
+| `KAFKA_THOUGHTS_TOPIC` | Topic name for thought events | `thoughts.events` |
+
+### AI / Embedding Model
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENSHIFT_AI_ENDPOINT_URL` | Base URL of the OpenAI-compatible embedding API | `http://localhost:8080` |
+| `OPENSHIFT_AI_API_KEY` | API key for the embedding endpoint | `dummy-key` |
+| `EMBEDDING_MODEL_NAME` | Model name to request | `text-embedding-ada-002` |
+
+### Evaluation
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `EVALUATION_SIMILARITY_THRESHOLD` | Cosine similarity threshold above which a thought is rejected | `0.85` |
 
 ## Running the Application
 
@@ -41,6 +72,8 @@ Key configuration properties in `application.properties`:
 ```bash
 ./mvnw compile quarkus:dev
 ```
+
+Quarkus Dev Services will automatically start PostgreSQL and Kafka containers. The service listens on port **8088**.
 
 ### Production Mode
 
@@ -55,44 +88,55 @@ java -jar target/quarkus-app/quarkus-run.jar
 ./mvnw test
 ```
 
-## Endpoints
+## API Endpoints
 
 ### REST API
 
-- `GET /evaluations` - List all evaluations (paginated)
-- `GET /evaluations/thought/{thoughtId}` - Get evaluation for specific thought
-- `GET /evaluations/stats` - Get evaluation statistics
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/evaluations` | List evaluations (paginated: `?page=0&size=20`) |
+| `GET` | `/evaluations/thought/{thoughtId}` | Get evaluation for a specific thought |
+| `GET` | `/evaluations/stats` | Evaluation statistics (counts, average score) |
+| `GET` | `/vectors/status` | Current vector database status (counts by type) |
+| `POST` | `/vectors/initialize` | Delete all vectors and re-seed with real AI embeddings |
 
-### Web UI
+#### Initialize the Vector Database
 
-- `GET /ui/evaluations` - View evaluations table
-- `GET /ui/evaluations/stats` - View evaluation statistics dashboard
+```bash
+curl -X POST http://localhost:8088/vectors/initialize -H 'Content-Type: application/json'
+```
 
-### Health & Metrics
+### Web UI (Qute)
 
-- `GET /q/health/live` - Liveness probe
-- `GET /q/health/ready` - Readiness probe
-- `GET /q/metrics` - Prometheus metrics
+| Path | Description |
+|------|-------------|
+| `/ui/evaluations` | Evaluations table |
+| `/ui/evaluations/stats` | Statistics dashboard |
 
-## Architecture
+### Health and Metrics
 
-The service follows these patterns:
-
-1. Kafka consumer receives thought-created events
-2. Embedding service generates vector for thought content
-3. Similarity service compares thought vector against negative vectors
-4. Evaluation service determines APPROVED or REJECTED status
-5. Result is persisted to database with transaction
-6. REST API exposes evaluation data
-7. Web UI displays results
+| Path | Description |
+|------|-------------|
+| `/q/health/live` | Liveness probe |
+| `/q/health/ready` | Readiness probe |
+| `/q/metrics` | Prometheus metrics |
 
 ## Database Schema
 
-- `evaluation_vectors` - Stores predefined positive and negative vectors
-- `thought_evaluations` - Stores evaluation results for each thought
+Managed by Flyway migrations in `src/main/resources/db/migration/`:
 
-## Development
+- **V1** — `evaluation_vectors`: stores reference embedding vectors with type (POSITIVE/NEGATIVE) and label
+- **V2** — `thought_evaluations`: stores per-thought evaluation results (status, similarity score, timestamps)
+- **V3** — Seeds the initial 6 reference vectors with placeholder embedding data
 
-Built with Red Hat Developer Hub and OpenShift AI integration.
+## Tech Stack
 
-For more information, see the specification document in the project repository.
+- Quarkus 3.31.2
+- Java 25
+- Langchain4j (quarkus-langchain4j-openai) for embedding generation
+- PostgreSQL with Hibernate ORM Panache
+- Apache Kafka with SmallRye Reactive Messaging
+- Qute templating for web UI
+- SmallRye Fault Tolerance (retry logic on embedding calls)
+- Micrometer with Prometheus for observability
+- Deployed on Red Hat OpenShift
