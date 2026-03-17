@@ -18,11 +18,11 @@ export default function ThoughtEdit() {
     enabled: !!id,
   });
 
-  const [form, setForm] = useState({ content: "", author: "", authorBio: "" });
+  const [form, setForm] = useState({ content: "", author: "", authorBio: "", status: "IN_REVIEW" });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (thought) setForm({ content: thought.content, author: thought.author, authorBio: thought.authorBio });
+    if (thought) setForm({ content: thought.content, author: thought.author, authorBio: thought.authorBio, status: thought.status });
   }, [thought]);
 
   const mutation = useMutation({
@@ -89,6 +89,18 @@ export default function ThoughtEdit() {
             maxLength={200}
           />
           {errors.authorBio && <p className="mt-1 text-xs text-destructive">{errors.authorBio}</p>}
+        </div>
+        <div>
+          <label className="mb-1.5 block text-sm font-medium">Status</label>
+          <select
+            className="form-focus w-full rounded-md border bg-background px-3 py-2 text-sm"
+            value={form.status}
+            onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+          >
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="IN_REVIEW">In Review</option>
+          </select>
         </div>
         <div className="flex gap-3">
           <Button type="submit" disabled={mutation.isPending}>

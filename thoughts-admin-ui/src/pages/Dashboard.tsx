@@ -62,11 +62,11 @@ export default function Dashboard() {
       {/* Status cards */}
       <div className="grid gap-6 md:grid-cols-3">
         {[
-          { label: "Approved", count: approved, icon: CheckCircle, borderColor: "border-success", bgColor: "bg-success/5" },
-          { label: "Rejected", count: rejected, icon: XCircle, borderColor: "border-destructive", bgColor: "bg-destructive/5" },
-          { label: "In Review", count: inReview, icon: Hourglass, borderColor: "border-warning", bgColor: "bg-warning/5" },
-        ].map(({ label, count, icon: Icon, borderColor, bgColor }) => (
-          <div key={label} className={`rounded-lg border-2 ${borderColor} ${bgColor} p-6`}>
+          { label: "Approved", status: "APPROVED", count: approved, icon: CheckCircle, borderColor: "border-success", bgColor: "bg-success/5" },
+          { label: "Rejected", status: "REJECTED", count: rejected, icon: XCircle, borderColor: "border-destructive", bgColor: "bg-destructive/5" },
+          { label: "In Review", status: "IN_REVIEW", count: inReview, icon: Hourglass, borderColor: "border-warning", bgColor: "bg-warning/5" },
+        ].map(({ label, status, count, icon: Icon, borderColor, bgColor }) => (
+          <Link key={label} to={`/thoughts?status=${status}`} className={`rounded-lg border-2 ${borderColor} ${bgColor} p-6 cursor-pointer transition-opacity hover:opacity-80`}>
             <div className="flex items-center gap-3">
               <Icon size={24} className="text-muted-foreground" />
               <div>
@@ -74,7 +74,7 @@ export default function Dashboard() {
                 <p className="text-2xl font-bold">{count}</p>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
