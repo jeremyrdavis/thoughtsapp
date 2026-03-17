@@ -80,7 +80,7 @@ export const apiClient = {
   },
 
   // Create a new thought
-  async createThought(data: { content: string; author: string }): Promise<Thought> {
+  async createThought(data: { content: string; author: string; authorBio: string }): Promise<Thought> {
     const response = await fetch(`${API_BASE_URL}/thoughts`, {
       method: 'POST',
       headers: {

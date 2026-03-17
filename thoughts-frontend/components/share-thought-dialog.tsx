@@ -19,6 +19,7 @@ import { apiClient } from '@/lib/api-client';
 const MIN_CONTENT_LENGTH = 10;
 const MAX_CONTENT_LENGTH = 500;
 const MAX_AUTHOR_LENGTH = 200;
+const MAX_BIO_LENGTH = 200;
 
 interface ShareThoughtDialogProps {
   open: boolean;
@@ -28,16 +29,19 @@ interface ShareThoughtDialogProps {
 export function ShareThoughtDialog({ open, onOpenChange }: ShareThoughtDialogProps) {
   const [content, setContent] = useState('');
   const [author, setAuthor] = useState('');
+  const [authorBio, setAuthorBio] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const contentLength = content.length;
   const isContentValid = contentLength >= MIN_CONTENT_LENGTH && contentLength <= MAX_CONTENT_LENGTH;
   const isAuthorValid = author.trim().length > 0 && author.length <= MAX_AUTHOR_LENGTH;
-  const isFormValid = isContentValid && isAuthorValid;
+  const isBioValid = authorBio.length <= MAX_BIO_LENGTH;
+  const isFormValid = isContentValid && isAuthorValid && isBioValid;
 
   const resetForm = () => {
     setContent('');
     setAuthor('');
+    setAuthorBio('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +50,7 @@ export function ShareThoughtDialog({ open, onOpenChange }: ShareThoughtDialogPro
 
     setSubmitting(true);
     try {
-      await apiClient.createThought({ content: content.trim(), author: author.trim() });
+      await apiClient.createThought({ content: content.trim(), author: author.trim(), authorBio: authorBio.trim() });
       toast.success('Your thought has been submitted for review!');
       resetForm();
       onOpenChange(false);
@@ -100,6 +104,19 @@ export function ShareThoughtDialog({ open, onOpenChange }: ShareThoughtDialogPro
               required
               maxLength={MAX_AUTHOR_LENGTH}
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="authorBio">Bio</Label>
+            <Input
+              id="authorBio"
+              placeholder="A short bio about yourself"
+              value={authorBio}
+              onChange={(e) => setAuthorBio(e.target.value.slice(0, MAX_BIO_LENGTH))}
+              maxLength={MAX_BIO_LENGTH}
+            />
+            <p className="text-xs text-muted-foreground">
+              {authorBio.length}/{MAX_BIO_LENGTH} characters
+            </p>
           </div>
           <DialogFooter>
             <Button
