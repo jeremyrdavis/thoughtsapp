@@ -8,8 +8,8 @@ import jakarta.ws.rs.ext.Provider;
 
 import java.io.IOException;
 
-@Provider
-@IfBuildProfile("dev")
+//@Provider
+//@IfBuildProfile("dev")
 public class CorsFilter implements ContainerResponseFilter {
 
     @Override

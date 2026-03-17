@@ -9,7 +9,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 const ADMIN_USER = import.meta.env.VITE_ADMIN_USER || "admin";
-const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || "admin";
+const ADMIN_PASS = import.meta.env.VITE_ADMIN_PASS || "ihavethoughts";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(

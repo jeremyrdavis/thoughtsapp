@@ -66,7 +66,7 @@ public class ThoughtEvaluationConsumer {
             Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, thoughtId);
 
             // Delegate to evaluation service
-            evaluationService.evaluateThought(thoughtId, thoughtContent);
+//            evaluationService.evaluateThought(thoughtId, thoughtContent);
 
             Log.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
 

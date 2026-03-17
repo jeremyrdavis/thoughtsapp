@@ -8,22 +8,22 @@ Designed for two audiences: **Solutions Architects** running customer demos and 
 
 ```
                          +-----------------+
-                         |  msa-ai-admin   |
+                         |  thoughts-admin   |
                          |  (Next.js)      |
                          |  Admin CRUD UI  |
                          +-------+---------+
                                  |
                                  v
-+------------------+    +-------------------+    +----------------------+
-|  msa-ai-frontend | -> | thoughts-msa-ai-  | -> |  Kafka               |
-|  (Next.js)       |    | backend (Quarkus) |    |  (AMQ Streams)       |
-|  Public UI       |    | REST API + Events |    |  thoughts.events     |
-+------------------+    +--------+----------+    +----------+-----------+
++-------------------+    +-------------------+    +----------------------+
+| thoughts-frontend | -> | thoughts-backend  | -> |  Kafka               |
+|  (Next.js)        |    | (Quarkus)         |    |  (AMQ Streams)       |
+|  Public UI        |    | REST API + Events |    |  thoughts.events     |
++-------------------+    +--------+----------+    +----------+-----------+
                                  |                          |
                                  v                          v
                         +--------+----------+    +----------+-----------+
-                        |   PostgreSQL      |    | ai-evaluation-service|
-                        |   (OpenShift)     | <- | (Quarkus + LLM)     |
+                        |   PostgreSQL      |    | thoughts-evaluatione |
+                        |   (OpenShift)     | <- | (Quarkus + LLM)      |
                         +-------------------+    +----------------------+
                                                           |
                                                           v
