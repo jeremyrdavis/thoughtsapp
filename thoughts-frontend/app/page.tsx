@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ThumbsUp, ThumbsDown, PenLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { apiClient, ApiError } from '@/lib/api-client';
 import { Thought } from '@/lib/types';
+import { ShareThoughtDialog } from '@/components/share-thought-dialog';
 
 type RatingState = 'up' | 'down' | null;
 
@@ -15,6 +16,7 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(true);
   const [rating, setRating] = useState<RatingState>(null);
   const [ratingLoading, setRatingLoading] = useState<boolean>(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState<boolean>(false);
 
   // Fetch random thought
   const fetchRandomThought = async () => {
@@ -153,29 +155,55 @@ export default function Home() {
           </div>
         )}
 
-        {/* View Another Thought Button */}
+        {/* Action Buttons */}
         {thought && !loading && (
-          <Button
-            onClick={handleViewAnother}
-            disabled={loading}
-            aria-label="View another thought"
-            size="lg"
-            className="px-8 py-6 text-lg font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
-          >
-            View Another Thought
-          </Button>
+          <div className="flex flex-wrap gap-4 items-center justify-center">
+            <Button
+              onClick={handleViewAnother}
+              disabled={loading}
+              aria-label="View another thought"
+              size="lg"
+              className="px-8 py-6 text-lg font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+              View Another Thought
+            </Button>
+            <Button
+              onClick={() => setShareDialogOpen(true)}
+              aria-label="Share your thought"
+              size="lg"
+              variant="outline"
+              className="px-8 py-6 text-lg font-medium rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+              <PenLine className="h-5 w-5 mr-2" />
+              Share Your Thought
+            </Button>
+          </div>
         )}
 
         {/* Retry Button (shown when no thought and not loading) */}
         {!thought && !loading && (
-          <Button
-            onClick={handleViewAnother}
-            size="lg"
-            className="px-8 py-6 text-lg font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg"
-          >
-            Try Again
-          </Button>
+          <div className="flex flex-wrap gap-4 items-center justify-center">
+            <Button
+              onClick={handleViewAnother}
+              size="lg"
+              className="px-8 py-6 text-lg font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg"
+            >
+              Try Again
+            </Button>
+            <Button
+              onClick={() => setShareDialogOpen(true)}
+              aria-label="Share your thought"
+              size="lg"
+              variant="outline"
+              className="px-8 py-6 text-lg font-medium rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            >
+              <PenLine className="h-5 w-5 mr-2" />
+              Share Your Thought
+            </Button>
+          </div>
         )}
+
+        <ShareThoughtDialog open={shareDialogOpen} onOpenChange={setShareDialogOpen} />
       </main>
     </div>
   );
