@@ -139,6 +139,14 @@ public class ThoughtEvent {
     public String toString() {
         return "ThoughtEvent{" +
                 "thoughtId=" + thoughtId +
+                ", thoughtContent='" + thoughtContent + '\'' +
+                ", author='" + author + '\'' +
+                ", authorBio='" + authorBio + '\'' +
+                ", status='" + status + '\'' +
+                ", thumbsUp=" + thumbsUp +
+                ", thumbsDown=" + thumbsDown +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
                 ", eventType='" + eventType + '\'' +
                 ", timestamp=" + timestamp +
                 '}';
