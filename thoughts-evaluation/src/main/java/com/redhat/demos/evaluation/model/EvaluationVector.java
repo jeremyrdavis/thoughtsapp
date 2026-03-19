@@ -4,8 +4,7 @@ import io.quarkus.hibernate.orm.panache.PanacheEntityBase;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
+import org.hibernate.annotations.ColumnTransformer;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -19,10 +18,10 @@ public class EvaluationVector extends PanacheEntityBase {
     @Column(name = "id", updatable = false, nullable = false)
     public UUID id;
 
-    @NotNull(message = "Vector data cannot be null")
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "vector_data", nullable = false, columnDefinition = "jsonb")
-    public String vectorData;
+    @Convert(converter = VectorConverter.class)
+    @Column(name = "embedding", columnDefinition = "vector")
+    @ColumnTransformer(write = "?::vector")
+    public float[] embedding;
 
     @NotNull(message = "Vector type cannot be null")
     @Enumerated(EnumType.STRING)

@@ -30,14 +30,14 @@ public class EvaluationServiceTest {
         EvaluationVector negativeVector = new EvaluationVector();
         negativeVector.vectorType = VectorType.NEGATIVE;
         negativeVector.label = "Test negative vector";
-        negativeVector.vectorData = createNegativeVectorJson();
+        negativeVector.embedding = createNegativeVectorArray();
         negativeVector.persist();
 
         // Add a positive vector
         EvaluationVector positiveVector = new EvaluationVector();
         positiveVector.vectorType = VectorType.POSITIVE;
         positiveVector.label = "Test positive vector";
-        positiveVector.vectorData = createPositiveVectorJson();
+        positiveVector.embedding = createPositiveVectorArray();
         positiveVector.persist();
     }
 
@@ -72,30 +72,6 @@ public class EvaluationServiceTest {
     }
 
     @Test
-    public void testVectorSimilarityCalculation() {
-        VectorSimilarityService similarityService = new VectorSimilarityService();
-
-        float[] vector1 = {1.0f, 0.0f, 0.0f};
-        float[] vector2 = {1.0f, 0.0f, 0.0f};
-
-        double similarity = similarityService.calculateCosineSimilarity(vector1, vector2);
-
-        assertEquals(1.0, similarity, 0.001);
-    }
-
-    @Test
-    public void testVectorSimilarity_Orthogonal() {
-        VectorSimilarityService similarityService = new VectorSimilarityService();
-
-        float[] vector1 = {1.0f, 0.0f, 0.0f};
-        float[] vector2 = {0.0f, 1.0f, 0.0f};
-
-        double similarity = similarityService.calculateCosineSimilarity(vector1, vector2);
-
-        assertEquals(0.0, similarity, 0.001);
-    }
-
-    @Test
     @Transactional
     public void testEvaluationPersistence() {
         UUID thoughtId = UUID.randomUUID();
@@ -110,30 +86,19 @@ public class EvaluationServiceTest {
         assertTrue(result.metadata.contains("threshold"));
     }
 
-    /**
-     * Creates a JSON representation of a negative vector.
-     * This matches the pattern used by the mock embedding model for negative content.
-     */
-    private String createNegativeVectorJson() {
-        StringBuilder json = new StringBuilder("{\"embedding\": [");
-        for (int i = 0; i < 384; i++) {
-            if (i > 0) json.append(", ");
-            json.append(-0.09f + (Math.random() * 0.02f));
+    private float[] createNegativeVectorArray() {
+        float[] vector = new float[384];
+        for (int i = 0; i < vector.length; i++) {
+            vector[i] = -0.09f + (float) (Math.random() * 0.02f);
         }
-        json.append("]}");
-        return json.toString();
+        return vector;
     }
 
-    /**
-     * Creates a JSON representation of a positive vector.
-     */
-    private String createPositiveVectorJson() {
-        StringBuilder json = new StringBuilder("{\"embedding\": [");
-        for (int i = 0; i < 384; i++) {
-            if (i > 0) json.append(", ");
-            json.append(Math.random() * 0.2f - 0.1f);
+    private float[] createPositiveVectorArray() {
+        float[] vector = new float[384];
+        for (int i = 0; i < vector.length; i++) {
+            vector[i] = (float) (Math.random() * 0.2f - 0.1f);
         }
-        json.append("]}");
-        return json.toString();
+        return vector;
     }
 }

@@ -43,4 +43,16 @@ public class ThoughtEvaluation extends PanacheEntityBase {
     public void prePersist() {
         this.evaluatedAt = LocalDateTime.now();
     }
+
+    @Override
+    public String toString() {
+        return "ThoughtEvaluation{" +
+                "id=" + id +
+                ", thoughtId=" + thoughtId +
+                ", status=" + status +
+                ", similarityScore=" + similarityScore +
+                ", evaluatedAt=" + evaluatedAt +
+                ", metadata='" + metadata + '\'' +
+                '}';
+    }
 }

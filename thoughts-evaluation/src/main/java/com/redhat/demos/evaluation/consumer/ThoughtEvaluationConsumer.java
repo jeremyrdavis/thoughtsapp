@@ -1,14 +1,13 @@
 package com.redhat.demos.evaluation.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.demos.evaluation.dto.ThoughtEvent;
+import com.redhat.demos.evaluation.model.ThoughtEvaluation;
 import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.logging.Log;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
-import org.jboss.logging.Logger;
 
 import java.util.UUID;
 
@@ -24,9 +23,6 @@ public class ThoughtEvaluationConsumer {
 
     @Inject
     EvaluationService evaluationService;
-
-    @Inject
-    ObjectMapper objectMapper;
 
     /**
      * Consumes thought events from Kafka and processes thought-created events only.
@@ -63,32 +59,17 @@ public class ThoughtEvaluationConsumer {
                 return;
             }
 
-            Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, thoughtId);
+            Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, event);
 
             // Delegate to evaluation service
-//            evaluationService.evaluateThought(thoughtId, thoughtContent);
+            ThoughtEvaluation thoughtEvaluation = evaluationService.evaluateThought(thoughtId, thoughtContent);
+            Log.debugf("[%s] Evaluation result for thought %s: %s", correlationId, thoughtId, thoughtEvaluation);
 
             Log.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
 
         } catch (Exception e) {
             // Log error but don't rethrow - consumer should continue processing subsequent messages
             Log.errorf(e, "[%s] Error processing thought event: %s", correlationId, e.getMessage());
-        }
-    }
-
-    /**
-     * Deserializes the JSON event string into a ThoughtEvent object.
-     * Handles malformed JSON gracefully by returning null.
-     *
-     * @param eventJson the JSON string to deserialize
-     * @return the deserialized ThoughtEvent or null if deserialization fails
-     */
-    private ThoughtEvent deserializeEvent(String eventJson) {
-        try {
-            return objectMapper.readValue(eventJson, ThoughtEvent.class);
-        } catch (Exception e) {
-            Log.warnf("Failed to deserialize event JSON: %s - Error: %s", eventJson, e.getMessage());
-            return null;
         }
     }
 
