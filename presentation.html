@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Positive Thoughts - Application Overview</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+  <style>
+    :root {
+      --r-heading-color: #e74c3c;
+      --r-link-color: #3498db;
+      --r-background-color: #1a1a2e;
+    }
+    .reveal { font-size: 32px; }
+    .reveal h1, .reveal h2, .reveal h3 { text-transform: none; }
+    .reveal h1 { font-size: 2.2em; color: #e74c3c; }
+    .reveal h2 { font-size: 1.6em; color: #f39c12; }
+    .reveal h3 { font-size: 1.2em; color: #ecf0f1; }
+    .reveal .subtitle { color: #bdc3c7; font-size: 0.9em; margin-top: 0.5em; }
+    .reveal pre { font-size: 0.55em; }
+    .reveal pre code { max-height: 500px; }
+    .reveal ul { font-size: 0.85em; }
+    .reveal li { margin-bottom: 0.4em; }
+    .reveal .mermaid { background: transparent; }
+    .reveal .mermaid svg { max-width: 100%; max-height: 500px; }
+    .reveal table { font-size: 0.7em; margin: 0 auto; }
+    .reveal table th { background: #e74c3c; color: white; padding: 8px 16px; }
+    .reveal table td { padding: 6px 16px; border-bottom: 1px solid #444; }
+    .reveal .highlight { color: #e74c3c; font-weight: bold; }
+    .reveal .tech-badge {
+      display: inline-block; background: #2c3e50; color: #ecf0f1;
+      padding: 4px 14px; border-radius: 20px; margin: 4px; font-size: 0.75em;
+    }
+    .reveal .two-col { display: flex; gap: 2em; align-items: flex-start; }
+    .reveal .two-col > div { flex: 1; }
+    .cosine-formula { font-size: 1.1em; color: #f39c12; font-family: serif; }
+    .vector-example { font-family: monospace; font-size: 0.8em; color: #2ecc71; }
+    .approved { color: #2ecc71; font-weight: bold; }
+    .rejected { color: #e74c3c; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Title Slide -->
+      <section>
+        <h1>Positive Thoughts</h1>
+        <p class="subtitle">A Cloud-Native Microservices Demo with AI-Powered Content Evaluation</p>
+        <br>
+        <div>
+          <span class="tech-badge">Quarkus</span>
+          <span class="tech-badge">Kafka</span>
+          <span class="tech-badge">PostgreSQL + pgvector</span>
+          <span class="tech-badge">Next.js</span>
+          <span class="tech-badge">Ollama</span>
+          <span class="tech-badge">OpenShift</span>
+        </div>
+      </section>
+
+      <!-- What Is It -->
+      <section>
+        <h2>What Is Positive Thoughts?</h2>
+        <ul>
+          <li>Interactive demo for enterprise Java developers and solution architects</li>
+          <li>Showcases modern cloud-native development on <span class="highlight">Red Hat OpenShift</span></li>
+          <li>Users submit thoughts; AI evaluates them for positive vs. negative sentiment</li>
+          <li>Demonstrates event-driven architecture with real-time AI evaluation</li>
+        </ul>
+      </section>
+
+      <!-- Tech Stack -->
+      <section>
+        <h2>Tech Stack</h2>
+        <div class="two-col">
+          <div>
+            <h3>Backend</h3>
+            <ul>
+              <li><strong>Quarkus</strong> (Java 25, Maven)</li>
+              <li><strong>PostgreSQL</strong> + pgvector</li>
+              <li><strong>Apache Kafka</strong> (AMQ Streams)</li>
+              <li><strong>Langchain4j</strong> for embeddings</li>
+              <li><strong>Hibernate Panache</strong> + Flyway</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Frontend & Ops</h3>
+            <ul>
+              <li><strong>Next.js</strong> + shadcn/ui + Tailwind</li>
+              <li><strong>Qute</strong> templating (admin UI)</li>
+              <li><strong>Ollama</strong> for local AI inference</li>
+              <li><strong>Red Hat OpenShift</strong></li>
+              <li><strong>Micrometer</strong> + Prometheus</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Service Architecture -->
+      <section>
+        <h2>Service Architecture</h2>
+        <table>
+          <thead>
+            <tr><th>Service</th><th>Port</th><th>Purpose</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>thoughts-backend</td><td>8080</td><td>REST API - CRUD, ratings, Kafka events</td></tr>
+            <tr><td>thoughts-frontend</td><td>3000</td><td>Next.js UI - displays thoughts, collects ratings</td></tr>
+            <tr><td>thoughts-evaluation</td><td>8088</td><td>AI evaluation via vector similarity</td></tr>
+            <tr><td>thoughts-admin</td><td>8081</td><td>Admin dashboard with Qute templates</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Data Flow Diagram -->
+      <section>
+        <h2>Data Flow</h2>
+        <div class="mermaid">
+flowchart LR
+    U["User"] -->|Submit thought| FE["thoughts-frontend\n:3000"]
+    FE -->|REST API| BE["thoughts-backend\n:8080"]
+    BE -->|Persist| DB[("PostgreSQL")]
+    BE -->|Publish event| K{{"Kafka\nthoughts.events"}}
+    K -->|Consume event| EV["thoughts-evaluation\n:8088"]
+    EV -->|Generate embedding| OL["Ollama\nnomic-embed-text"]
+    OL -->|Vector| EV
+    EV -->|Store result| DB
+    A["Admin"] -->|Manage| AD["thoughts-admin\n:8081"]
+    AD -->|Read/Write| DB
+        </div>
+      </section>
+
+      <!-- Evaluation Pipeline -->
+      <section>
+        <h2>Evaluation Pipeline</h2>
+        <div class="mermaid">
+sequenceDiagram
+    participant K as Kafka Topic
+    participant C as ThoughtEvaluationConsumer
+    participant ES as EvaluationServiceImpl
+    participant EM as EmbeddingService
+    participant OL as Ollama (nomic-embed-text)
+    participant PG as PostgreSQL + pgvector
+
+    K->>C: ThoughtEvent (CREATED)
+    C->>ES: evaluateThought(id, content)
+    ES->>EM: generateEmbedding(content)
+    EM->>OL: POST /v1/embeddings
+    OL-->>EM: float[768] vector
+    EM-->>ES: thought vector
+    ES->>PG: SELECT nearest NEGATIVE vector (cosine distance)
+    PG-->>ES: similarity score + label
+    ES->>ES: score > 0.85 threshold?
+    alt REJECTED
+        ES->>PG: persist REJECTED evaluation
+    else APPROVED
+        ES->>PG: persist APPROVED evaluation
+    end
+    ES-->>C: ThoughtEvaluation result
+        </div>
+      </section>
+
+      <!-- What Are Embeddings -->
+      <section>
+        <h2>What Are Vector Embeddings?</h2>
+        <ul>
+          <li>Text is converted into a <strong>high-dimensional numeric vector</strong> (e.g. 768 floats)</li>
+          <li>Semantically similar text produces vectors that are <strong>close together</strong> in vector space</li>
+          <li>Generated by a neural network model (e.g. <code>nomic-embed-text</code>)</li>
+        </ul>
+        <br>
+        <div class="vector-example">
+          "I love helping people" &rarr; [0.023, -0.118, 0.457, ..., 0.091]<br>
+          "You are worthless"&nbsp;&nbsp;&nbsp;&nbsp; &rarr; [0.891, -0.034, -0.672, ..., 0.445]
+        </div>
+        <br>
+        <p>These vectors capture <em>meaning</em>, not just keywords.</p>
+      </section>
+
+      <!-- Cosine Similarity Intro -->
+      <section>
+        <h2>Cosine Similarity</h2>
+        <p>Measures the <strong>angle</strong> between two vectors, ignoring magnitude.</p>
+        <br>
+        <p class="cosine-formula">
+          cos(&theta;) = (A &middot; B) / (||A|| &times; ||B||)
+        </p>
+        <br>
+        <table>
+          <thead><tr><th>Score</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>1.0</td><td>Identical direction &mdash; same meaning</td></tr>
+            <tr><td>0.85+</td><td>Very similar &mdash; likely matches category</td></tr>
+            <tr><td>0.5</td><td>Somewhat related</td></tr>
+            <tr><td>0.0</td><td>Orthogonal &mdash; unrelated</td></tr>
+            <tr><td>-1.0</td><td>Opposite direction &mdash; opposite meaning</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Why Cosine Similarity -->
+      <section>
+        <h2>Why Cosine Similarity?</h2>
+        <div class="two-col">
+          <div>
+            <h3>Advantages</h3>
+            <ul>
+              <li>Ignores vector magnitude &mdash; focuses on <em>direction</em> (meaning)</li>
+              <li>Fast to compute, even for high-dimensional vectors</li>
+              <li>Works natively in PostgreSQL via <strong>pgvector</strong> (<code>&lt;=&gt;</code> operator)</li>
+              <li>No model fine-tuning required</li>
+            </ul>
+          </div>
+          <div>
+            <h3>In Our App</h3>
+            <ul>
+              <li>Compare incoming thought to <strong>6 reference vectors</strong></li>
+              <li>3 positive + 3 negative reference phrases</li>
+              <li>If similarity to any negative reference &gt; <strong>0.85</strong> &rarr; <span class="rejected">REJECTED</span></li>
+              <li>Otherwise &rarr; <span class="approved">APPROVED</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- How pgvector Computes It -->
+      <section>
+        <h2>Cosine Similarity in pgvector</h2>
+        <p>The <code>&lt;=&gt;</code> operator computes <strong>cosine distance</strong> (1 - similarity).</p>
+        <pre><code class="language-sql">-- Find nearest negative vector and compute similarity
+SELECT id, label,
+       (1 - (embedding <=> cast(:vec AS vector))) AS similarity
+FROM evaluation_vectors
+WHERE vector_type = 'NEGATIVE'
+ORDER BY embedding <=> cast(:vec AS vector) ASC
+LIMIT 1;</code></pre>
+        <br>
+        <p>This single query replaces what would otherwise require loading all vectors into application memory and computing similarity in Java.</p>
+      </section>
+
+      <!-- Reference Vectors -->
+      <section>
+        <h2>Reference Vectors</h2>
+        <div class="mermaid">
+flowchart TB
+    subgraph POS["POSITIVE References"]
+        P1["Encouraging and\nuplifting language"]
+        P2["Optimistic and\nhopeful perspective"]
+        P3["Gratitude and\nappreciation expressions"]
+    end
+    subgraph NEG["NEGATIVE References"]
+        N1["Hateful or\ndiscriminatory language"]
+        N2["Violent or\nthreatening content"]
+        N3["Profanity and\nabusive language"]
+    end
+    T["Incoming Thought"] -->|cosine similarity| NEG
+    NEG -->|score > 0.85| REJ["REJECTED"]
+    NEG -->|score <= 0.85| APP["APPROVED"]
+
+    style POS fill:#1a472a,stroke:#2ecc71,color:#fff
+    style NEG fill:#4a1a1a,stroke:#e74c3c,color:#fff
+    style REJ fill:#c0392b,stroke:#e74c3c,color:#fff
+    style APP fill:#27ae60,stroke:#2ecc71,color:#fff
+        </div>
+      </section>
+
+      <!-- Vector Initialization -->
+      <section>
+        <h2>Vector Initialization</h2>
+        <div class="mermaid">
+sequenceDiagram
+    participant A as Admin / curl
+    participant R as VectorResource
+    participant V as VectorInitializationService
+    participant E as EmbeddingService
+    participant O as Ollama
+
+    A->>R: POST /vectors/initialize
+    R->>V: initializeVectors()
+    V->>V: Delete all existing vectors
+    loop For each of 6 reference phrases
+        V->>E: generateEmbedding(phrase)
+        E->>O: POST /v1/embeddings
+        O-->>E: float[] vector
+        E-->>V: embedding
+        V->>V: Persist EvaluationVector
+    end
+    V-->>R: VectorInitializationResultDTO
+    R-->>A: 200 OK (6 vectors created)
+        </div>
+      </section>
+
+      <!-- Evaluation Example -->
+      <section>
+        <h2>Evaluation in Action</h2>
+        <div class="two-col">
+          <div>
+            <h3><span class="approved">APPROVED</span></h3>
+            <p><em>"Every day is a new opportunity to grow and learn something wonderful"</em></p>
+            <ul>
+              <li>Nearest negative vector: "Hateful or discriminatory language"</li>
+              <li>Cosine similarity: <strong>0.31</strong></li>
+              <li>0.31 &lt; 0.85 threshold</li>
+            </ul>
+          </div>
+          <div>
+            <h3><span class="rejected">REJECTED</span></h3>
+            <p><em>"I hate everything about this terrible world"</em></p>
+            <ul>
+              <li>Nearest negative vector: "Hateful or discriminatory language"</li>
+              <li>Cosine similarity: <strong>0.91</strong></li>
+              <li>0.91 &gt; 0.85 threshold</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Running Locally - Ollama -->
+      <section>
+        <h2>Running the Embedding Model</h2>
+        <p>The service uses <strong>Ollama</strong> to serve the embedding model locally.</p>
+        <pre><code class="language-bash"># 1. Install Ollama
+brew install ollama
+
+# 2. Pull the embedding model
+ollama pull nomic-embed-text
+
+# 3. Start the server (default port 11434)
+ollama serve
+
+# 4. Verify
+curl http://localhost:11434/v1/embeddings \
+  -H "Content-Type: application/json" \
+  -d '{"model": "nomic-embed-text", "input": "Hello world"}'
+
+# 5. Initialize reference vectors
+curl -X POST http://localhost:8088/vectors/initialize</code></pre>
+      </section>
+
+      <!-- Key Code - EvaluationServiceImpl -->
+      <section>
+        <h2>Key Code: EvaluationServiceImpl</h2>
+        <pre><code class="language-java">@Transactional
+public ThoughtEvaluation evaluateThought(UUID thoughtId, String content) {
+    // 1. Generate embedding vector from thought text
+    float[] thoughtVector = embeddingService.generateEmbedding(content);
+
+    // 2. Find nearest negative reference vector using pgvector
+    List&lt;Object[]&gt; results = em.createNativeQuery(
+        "SELECT id, label, " +
+        "  (1 - (embedding &lt;=&gt; cast(:vec AS vector))) AS similarity " +
+        "FROM evaluation_vectors WHERE vector_type = 'NEGATIVE' " +
+        "ORDER BY embedding &lt;=&gt; cast(:vec AS vector) ASC LIMIT 1")
+        .setParameter("vec", vectorLiteral)
+        .getResultList();
+
+    double maxSimilarity = ((Number) results.get(0)[2]).doubleValue();
+
+    // 3. Compare against threshold
+    ThoughtStatus status = maxSimilarity > similarityThreshold
+        ? ThoughtStatus.REJECTED
+        : ThoughtStatus.APPROVED;
+
+    // 4. Persist and return result
+    return createEvaluation(thoughtId, status, maxSimilarity, ...);
+}</code></pre>
+      </section>
+
+      <!-- Class Diagram -->
+      <section>
+        <h2>Evaluation Service Classes</h2>
+        <div class="mermaid">
+classDiagram
+    class ThoughtEvaluationConsumer {
+        +consumeThoughtEvent(ThoughtEvent)
+    }
+    class EvaluationService {
+        <<interface>>
+        +evaluateThought(UUID, String) ThoughtEvaluation
+    }
+    class EvaluationServiceImpl {
+        -embeddingService: EmbeddingService
+        -similarityThreshold: double
+        +evaluateThought(UUID, String) ThoughtEvaluation
+    }
+    class EmbeddingService {
+        -embeddingModel: EmbeddingModel
+        +generateEmbedding(String) float[]
+    }
+    class VectorInitializationService {
+        +initializeVectors() VectorInitializationResultDTO
+        +getVectorStatus() VectorStatusDTO
+    }
+    class EvaluationVector {
+        +id: UUID
+        +embedding: float[]
+        +vectorType: VectorType
+        +label: String
+    }
+    class ThoughtEvaluation {
+        +id: UUID
+        +thoughtId: UUID
+        +status: ThoughtStatus
+        +similarityScore: BigDecimal
+        +metadata: String
+    }
+
+    ThoughtEvaluationConsumer --> EvaluationService
+    EvaluationServiceImpl ..|> EvaluationService
+    EvaluationServiceImpl --> EmbeddingService
+    VectorInitializationService --> EmbeddingService
+    EvaluationServiceImpl ..> ThoughtEvaluation
+    VectorInitializationService ..> EvaluationVector
+        </div>
+      </section>
+
+      <!-- Event-Driven Architecture -->
+      <section>
+        <h2>Event-Driven Architecture</h2>
+        <div class="mermaid">
+flowchart LR
+    subgraph Backend["thoughts-backend"]
+        TR["ThoughtResource\nPOST /thoughts"]
+        TES["ThoughtEventService"]
+    end
+    subgraph Kafka["Apache Kafka"]
+        T1{{"thoughts.events"}}
+    end
+    subgraph Evaluation["thoughts-evaluation"]
+        TEC["ThoughtEvaluation\nConsumer"]
+        ES["EvaluationServiceImpl"]
+    end
+
+    TR -->|"persist + publish"| TES
+    TES -->|"Thought JSON"| T1
+    T1 -->|"@Incoming"| TEC
+    TEC -->|"evaluateThought()"| ES
+
+    style Backend fill:#2c3e50,stroke:#3498db,color:#fff
+    style Kafka fill:#4a2c2c,stroke:#e74c3c,color:#fff
+    style Evaluation fill:#1a472a,stroke:#2ecc71,color:#fff
+        </div>
+        <br>
+        <p>Loose coupling via Kafka &mdash; backend doesn't know about the evaluation service.</p>
+      </section>
+
+      <!-- Deployment on OpenShift -->
+      <section>
+        <h2>Deployment on OpenShift</h2>
+        <div class="mermaid">
+flowchart TB
+    subgraph OCP["Red Hat OpenShift"]
+        subgraph Services
+            BE["thoughts-backend\nQuarkus"]
+            FE["thoughts-frontend\nNext.js"]
+            EV["thoughts-evaluation\nQuarkus"]
+            AD["thoughts-admin\nQuarkus + Qute"]
+        end
+        subgraph Infra["Infrastructure"]
+            PG[("PostgreSQL\npgvector")]
+            KF{{"AMQ Streams\n(Kafka)"}}
+            AI["OpenShift AI\nEmbedding Model"]
+        end
+    end
+
+    BE --> PG
+    BE --> KF
+    EV --> PG
+    EV --> KF
+    EV --> AI
+    AD --> PG
+    FE --> BE
+
+    style OCP fill:#1a1a2e,stroke:#e74c3c,color:#fff
+    style Services fill:#2c3e50,stroke:#3498db,color:#fff
+    style Infra fill:#4a2c2c,stroke:#f39c12,color:#fff
+        </div>
+      </section>
+
+      <!-- Summary -->
+      <section>
+        <h2>Key Takeaways</h2>
+        <ul>
+          <li><strong>Microservices</strong> &mdash; Independently deployable Quarkus services communicating via Kafka</li>
+          <li><strong>Event-driven</strong> &mdash; Thoughts are evaluated asynchronously, decoupled from the user request</li>
+          <li><strong>AI integration</strong> &mdash; Vector embeddings + cosine similarity for semantic text evaluation</li>
+          <li><strong>pgvector</strong> &mdash; Similarity search pushed down to the database for performance</li>
+          <li><strong>Ollama</strong> &mdash; Run AI models locally with an OpenAI-compatible API</li>
+          <li><strong>Cloud-native</strong> &mdash; Health checks, metrics, container images, OpenShift-ready</li>
+        </ul>
+      </section>
+
+      <!-- Thank You -->
+      <section>
+        <h1>Thank You</h1>
+        <br>
+        <p>Navigate: arrow keys or swipe</p>
+        <p class="subtitle">Built with Quarkus, Kafka, pgvector, Langchain4j, and Ollama</p>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/highlight/highlight.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+  <script>
+    // Initialize Mermaid
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#2c3e50',
+        primaryTextColor: '#ecf0f1',
+        primaryBorderColor: '#3498db',
+        lineColor: '#95a5a6',
+        secondaryColor: '#1a472a',
+        tertiaryColor: '#4a2c2c',
+        fontSize: '16px'
+      }
+    });
+
+    // Render Mermaid diagrams on slide change
+    async function renderMermaid() {
+      const mermaidDivs = document.querySelectorAll('.mermaid');
+      for (const div of mermaidDivs) {
+        if (div.getAttribute('data-processed')) continue;
+        const id = 'mermaid-' + Math.random().toString(36).substring(2, 9);
+        try {
+          const { svg } = await mermaid.render(id, div.textContent.trim());
+          div.innerHTML = svg;
+          div.setAttribute('data-processed', 'true');
+        } catch (e) {
+          console.error('Mermaid render error:', e);
+        }
+      }
+    }
+
+    // Initialize Reveal.js
+    Reveal.initialize({
+      hash: true,
+      width: 1280,
+      height: 720,
+      margin: 0.08,
+      plugins: [RevealHighlight]
+    }).then(() => {
+      renderMermaid();
+      Reveal.on('slidechanged', renderMermaid);
+    });
+  </script>
+</body>
+</html>
