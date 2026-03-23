@@ -4,7 +4,6 @@ import com.redhat.demos.evaluation.dto.VectorInitializationResultDTO;
 import com.redhat.demos.evaluation.dto.VectorStatusDTO;
 import com.redhat.demos.evaluation.model.EvaluationVector;
 import com.redhat.demos.evaluation.model.VectorType;
-import com.redhat.demos.evaluation.util.VectorDataParser;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -45,10 +44,9 @@ public class VectorInitializationService {
 
             Log.infof("Generating embedding for: %s (%s)", phrase, type);
             float[] embedding = embeddingService.generateEmbedding(phrase);
-            String vectorData = VectorDataParser.toJsonString(embedding);
 
             EvaluationVector vector = new EvaluationVector();
-            vector.vectorData = vectorData;
+            vector.embedding = embedding;
             vector.vectorType = type;
             vector.label = phrase;
             vector.persist();

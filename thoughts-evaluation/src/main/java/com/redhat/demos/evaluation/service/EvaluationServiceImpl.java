@@ -2,29 +2,22 @@ package com.redhat.demos.evaluation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.redhat.demos.evaluation.model.EvaluationVector;
 import com.redhat.demos.evaluation.model.ThoughtEvaluation;
 import com.redhat.demos.evaluation.model.ThoughtStatus;
-import com.redhat.demos.evaluation.model.VectorType;
-import com.redhat.demos.evaluation.util.VectorDataParser;
 import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.jboss.logging.Logger;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Implementation of EvaluationService that orchestrates the evaluation process.
- * Generates embeddings, compares against negative vectors, and persists results.
- */
 @ApplicationScoped
 public class EvaluationServiceImpl implements EvaluationService {
 
@@ -34,10 +27,13 @@ public class EvaluationServiceImpl implements EvaluationService {
     EmbeddingService embeddingService;
 
     @Inject
-    VectorSimilarityService vectorSimilarityService;
+    EntityManager em;
 
     @ConfigProperty(name = "evaluation.similarity.threshold", defaultValue = "0.85")
     double similarityThreshold;
+
+    @ConfigProperty(name = "evaluation.model.name", defaultValue = "nomic-embed-text")
+    String modelName;
 
     @Override
     @Transactional
@@ -49,42 +45,36 @@ public class EvaluationServiceImpl implements EvaluationService {
         Log.infof("[%s] Starting evaluation for thought %s", correlationId, thoughtId);
 
         try {
-            // Generate embedding for the thought
             float[] thoughtVector = embeddingService.generateEmbedding(thoughtContent);
+            String vectorLiteral = arrayToVectorLiteral(thoughtVector);
 
-            // Retrieve all negative vectors from database
-            List<EvaluationVector> negativeVectors = EvaluationVector.list("vectorType", VectorType.NEGATIVE);
+            @SuppressWarnings("unchecked")
+            List<Object[]> results = em.createNativeQuery(
+                "SELECT id, label, (1 - (embedding <=> cast(:vec AS vector))) AS similarity " +
+                "FROM evaluation_vectors WHERE vector_type = 'NEGATIVE' " +
+                "ORDER BY embedding <=> cast(:vec AS vector) ASC LIMIT 1")
+                .setParameter("vec", vectorLiteral)
+                .getResultList();
 
-            Log.infof("[%s] Retrieved %d negative vectors for comparison", correlationId, negativeVectors.size());
-
-            // Calculate similarity with each negative vector
             double maxSimilarity = 0.0;
             String matchedLabel = null;
 
-            for (EvaluationVector negativeVector : negativeVectors) {
-                float[] negativeEmbedding = VectorDataParser.parseVectorData(negativeVector.vectorData);
-                double similarity = vectorSimilarityService.calculateCosineSimilarity(thoughtVector, negativeEmbedding);
-
-                Log.debugf("[%s] Similarity with '%s': %.4f", correlationId, negativeVector.label, similarity);
-
-                if (similarity > maxSimilarity) {
-                    maxSimilarity = similarity;
-                    matchedLabel = negativeVector.label;
-                }
+            if (!results.isEmpty()) {
+                Object[] row = results.get(0);
+                maxSimilarity = ((Number) row[2]).doubleValue();
+                matchedLabel = (String) row[1];
             }
 
-            // Determine status based on threshold
+            Log.infof("[%s] Evaluation result: max similarity %.4f with '%s' (threshold: %.2f)",
+                correlationId, maxSimilarity, matchedLabel, similarityThreshold);
+
             ThoughtStatus status = maxSimilarity > similarityThreshold
                 ? ThoughtStatus.REJECTED
                 : ThoughtStatus.APPROVED;
 
-            Log.infof("[%s] Evaluation result: %s (max similarity: %.4f, threshold: %.2f)",
-                correlationId, status, maxSimilarity, similarityThreshold);
-
-            // Create and persist evaluation
             ThoughtEvaluation evaluation = createEvaluation(thoughtId, status, maxSimilarity, matchedLabel, correlationId);
 
-            Log.infof("[%s] Evaluation completed and persisted with id %s", correlationId, evaluation.id);
+            Log.infof("[%s] Evaluation completed: %s (id: %s)", correlationId, status, evaluation.id);
 
             return evaluation;
 
@@ -94,9 +84,6 @@ public class EvaluationServiceImpl implements EvaluationService {
         }
     }
 
-    /**
-     * Creates and persists a ThoughtEvaluation entity.
-     */
     private ThoughtEvaluation createEvaluation(UUID thoughtId, ThoughtStatus status,
                                                double similarityScore, String matchedLabel,
                                                String correlationId) {
@@ -105,22 +92,29 @@ public class EvaluationServiceImpl implements EvaluationService {
         evaluation.status = status;
         evaluation.similarityScore = BigDecimal.valueOf(similarityScore);
 
-        // Create metadata JSON
         ObjectNode metadata = MAPPER.createObjectNode();
         metadata.put("evaluationTimestamp", LocalDateTime.now().toString());
         metadata.put("correlationId", correlationId);
         metadata.put("threshold", similarityThreshold);
-        metadata.put("modelName", "text-embedding-ada-002");
+        metadata.put("modelName", modelName);
 
         if (matchedLabel != null) {
             metadata.put("matchedNegativeLabel", matchedLabel);
         }
 
         evaluation.metadata = metadata.toString();
-
-        // Persist the evaluation
         evaluation.persist();
 
         return evaluation;
+    }
+
+    private String arrayToVectorLiteral(float[] vector) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < vector.length; i++) {
+            if (i > 0) sb.append(",");
+            sb.append(vector[i]);
+        }
+        sb.append("]");
+        return sb.toString();
     }
 }

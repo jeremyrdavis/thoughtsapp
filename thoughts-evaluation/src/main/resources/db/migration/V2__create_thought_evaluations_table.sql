@@ -9,8 +9,7 @@ CREATE TABLE thought_evaluations (
     status VARCHAR(20) NOT NULL CHECK (status IN ('APPROVED', 'REJECTED', 'REMOVED', 'IN_REVIEW')),
     similarity_score DECIMAL(5, 4) NOT NULL,
     evaluated_at TIMESTAMP NOT NULL,
-    metadata JSONB,
-    CONSTRAINT fk_thought_evaluations_thought_id FOREIGN KEY (thought_id) REFERENCES thoughts(id)
+    metadata JSONB
 );
 
 -- Create index on thought_id for fast lookups
