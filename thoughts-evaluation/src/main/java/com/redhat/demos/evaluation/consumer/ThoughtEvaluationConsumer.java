@@ -5,90 +5,81 @@ import com.redhat.demos.evaluation.model.ThoughtEvaluation;
 import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.logging.Log;
 import io.smallrye.reactive.messaging.annotations.Blocking;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
+import org.eclipse.microprofile.reactive.messaging.Message;
 
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionStage;
 
 /**
- * Kafka consumer for thought events.
- * Listens to the thoughts-events topic and processes thought-created events.
- * Follows the pattern from ThoughtEventService (producer) in reverse.
+ * Kafka consumer for thought events using CloudEvents structured format.
+ * Listens to the thoughts-events topic and processes thought-created events only.
+ * Event type filtering uses CloudEvents metadata rather than payload fields.
  */
 @ApplicationScoped
 public class ThoughtEvaluationConsumer {
 
-    private static final String EVENT_TYPE_CREATED = "CREATED";
+    private static final String EVENT_TYPE_CREATED = "com.redhat.demos.thoughts.created";
 
     @Inject
     EvaluationService evaluationService;
 
-    /**
-     * Consumes thought events from Kafka and processes thought-created events only.
-     * Events are received as JSON strings and deserialized to ThoughtEvent objects.
-     *
-     * @param event the ThoughtEvent DTO from Kafka
-     */
     @Incoming("thoughts-events")
     @Blocking
-    public void consumeThoughtEvent(ThoughtEvent event) {
+    public CompletionStage<Void> consumeThoughtEvent(Message<ThoughtEvent> message) {
         UUID correlationId = UUID.randomUUID();
 
         try {
-            Log.debugf("[%s] Received event: %s", correlationId, event);
+            ThoughtEvent event = message.getPayload();
+
+            // Extract CloudEvents metadata
+            Optional<IncomingCloudEventMetadata> ceMetadata =
+                message.getMetadata(IncomingCloudEventMetadata.class);
+
+            String eventType = ceMetadata.map(IncomingCloudEventMetadata::getType).orElse(null);
+            String source = ceMetadata.map(m -> m.getSource().toString()).orElse(null);
+            @SuppressWarnings("unchecked")
+            Optional<String> subjectOpt = ceMetadata.flatMap(m -> m.getSubject());
+            String subject = subjectOpt.orElse(null);
+
+            Log.debugf("[%s] Received CloudEvent [type=%s, source=%s, subject=%s]",
+                correlationId, eventType, source, subject);
 
             if (event == null) {
-                Log.warnf("[%s] Failed to deserialize event, skipping", correlationId);
-                return;
+                Log.warnf("[%s] Failed to deserialize event data, skipping", correlationId);
+                return message.ack();
             }
 
-            // Filter for thought-created events only
-            if (!isCreatedEvent(event)) {
+            // Filter for thought-created events only using CloudEvents type
+            if (!EVENT_TYPE_CREATED.equals(eventType)) {
                 Log.debugf("[%s] Ignoring non-created event type: %s for thought: %s",
-                    correlationId, event.getEventType(), event.getThoughtId());
-                return;
+                    correlationId, eventType, event.getThoughtId());
+                return message.ack();
             }
 
-            // Extract thought ID and content
             UUID thoughtId = event.getThoughtId();
             String thoughtContent = event.getThoughtContent();
 
             if (thoughtId == null || thoughtContent == null || thoughtContent.trim().isEmpty()) {
                 Log.warnf("[%s] Event missing required fields (thoughtId or content), skipping", correlationId);
-                return;
+                return message.ack();
             }
 
             Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, event);
 
-            // Delegate to evaluation service
             ThoughtEvaluation thoughtEvaluation = evaluationService.evaluateThought(thoughtId, thoughtContent);
             Log.debugf("[%s] Evaluation result for thought %s: %s", correlationId, thoughtId, thoughtEvaluation);
 
             Log.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
 
         } catch (Exception e) {
-            // Log error but don't rethrow - consumer should continue processing subsequent messages
             Log.errorf(e, "[%s] Error processing thought event: %s", correlationId, e.getMessage());
         }
-    }
 
-    /**
-     * Checks if the event is a thought-created event.
-     * The event type might be in the event metadata or inferred from the presence of createdAt field.
-     *
-     * @param event the event to check
-     * @return true if this is a created event, false otherwise
-     */
-    private boolean isCreatedEvent(ThoughtEvent event) {
-        // Check explicit event type if present
-        if (event.getEventType() != null) {
-            return EVENT_TYPE_CREATED.equalsIgnoreCase(event.getEventType());
-        }
-
-        // Since ThoughtEventService doesn't include explicit eventType in the payload,
-        // we treat all events as potential created events and rely on the topic/channel filtering
-        // In a real scenario, we might check if createdAt equals updatedAt or use message headers
-        return true;
+        return message.ack();
     }
 }

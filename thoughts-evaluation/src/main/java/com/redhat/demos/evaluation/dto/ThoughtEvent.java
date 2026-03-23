@@ -40,10 +40,6 @@ public class ThoughtEvent {
     @JsonProperty("updatedAt")
     private LocalDateTime updatedAt;
 
-    // Event metadata - not part of Thought entity but useful for filtering
-    private String eventType;
-    private LocalDateTime timestamp;
-
     public ThoughtEvent() {
     }
 
@@ -119,22 +115,6 @@ public class ThoughtEvent {
         this.updatedAt = updatedAt;
     }
 
-    public String getEventType() {
-        return eventType;
-    }
-
-    public void setEventType(String eventType) {
-        this.eventType = eventType;
-    }
-
-    public LocalDateTime getTimestamp() {
-        return timestamp;
-    }
-
-    public void setTimestamp(LocalDateTime timestamp) {
-        this.timestamp = timestamp;
-    }
-
     @Override
     public String toString() {
         return "ThoughtEvent{" +
@@ -147,8 +127,6 @@ public class ThoughtEvent {
                 ", thumbsDown=" + thumbsDown +
                 ", createdAt=" + createdAt +
                 ", updatedAt=" + updatedAt +
-                ", eventType='" + eventType + '\'' +
-                ", timestamp=" + timestamp +
                 '}';
     }
 }

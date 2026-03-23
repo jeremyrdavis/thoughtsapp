@@ -7,16 +7,23 @@ import com.redhat.demos.evaluation.model.ThoughtEvaluation;
 import com.redhat.demos.evaluation.model.ThoughtStatus;
 import com.redhat.demos.evaluation.model.VectorType;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @QuarkusTest
 public class EndToEndEvaluationFlowTest {
@@ -39,9 +46,9 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId = UUID.randomUUID();
         String thoughtContent = "I am grateful for this beautiful day and all the wonderful opportunities";
 
-        ThoughtEvent event = createThoughtEvent(thoughtId, thoughtContent);
+        Message<ThoughtEvent> message = createThoughtMessage(thoughtId, thoughtContent);
 
-        consumer.consumeThoughtEvent(event);
+        consumer.consumeThoughtEvent(message).toCompletableFuture().join();
 
         List<ThoughtEvaluation> evaluations = ThoughtEvaluation.find("thoughtId", thoughtId).list();
         assertFalse(evaluations.isEmpty(), "Evaluation should be persisted in database");
@@ -61,9 +68,9 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId = UUID.randomUUID();
         String thoughtContent = "I hate everything and everyone is terrible and awful";
 
-        ThoughtEvent event = createThoughtEvent(thoughtId, thoughtContent);
+        Message<ThoughtEvent> message = createThoughtMessage(thoughtId, thoughtContent);
 
-        consumer.consumeThoughtEvent(event);
+        consumer.consumeThoughtEvent(message).toCompletableFuture().join();
 
         List<ThoughtEvaluation> evaluations = ThoughtEvaluation.find("thoughtId", thoughtId).list();
         assertFalse(evaluations.isEmpty(), "Evaluation should be persisted in database");
@@ -83,13 +90,13 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId2 = UUID.randomUUID();
         UUID thoughtId3 = UUID.randomUUID();
 
-        ThoughtEvent event1 = createThoughtEvent(thoughtId1, "Positive thought 1");
-        ThoughtEvent event2 = createThoughtEvent(thoughtId2, "I hate this");
-        ThoughtEvent event3 = createThoughtEvent(thoughtId3, "Positive thought 2");
+        Message<ThoughtEvent> message1 = createThoughtMessage(thoughtId1, "Positive thought 1");
+        Message<ThoughtEvent> message2 = createThoughtMessage(thoughtId2, "I hate this");
+        Message<ThoughtEvent> message3 = createThoughtMessage(thoughtId3, "Positive thought 2");
 
-        consumer.consumeThoughtEvent(event1);
-        consumer.consumeThoughtEvent(event2);
-        consumer.consumeThoughtEvent(event3);
+        consumer.consumeThoughtEvent(message1).toCompletableFuture().join();
+        consumer.consumeThoughtEvent(message2).toCompletableFuture().join();
+        consumer.consumeThoughtEvent(message3).toCompletableFuture().join();
 
         assertEquals(3, ThoughtEvaluation.count(), "All three evaluations should be persisted");
 
@@ -106,7 +113,8 @@ public class EndToEndEvaluationFlowTest {
         assertEquals(ThoughtStatus.APPROVED, eval3.status);
     }
 
-    private ThoughtEvent createThoughtEvent(UUID thoughtId, String content) {
+    @SuppressWarnings("unchecked")
+    private Message<ThoughtEvent> createThoughtMessage(UUID thoughtId, String content) {
         ThoughtEvent event = new ThoughtEvent();
         event.setThoughtId(thoughtId);
         event.setThoughtContent(content);
@@ -115,8 +123,14 @@ public class EndToEndEvaluationFlowTest {
         event.setStatus("IN_REVIEW");
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
-        event.setEventType("CREATED");
-        return event;
+
+        IncomingCloudEventMetadata<ThoughtEvent> ceMetadata = mock(IncomingCloudEventMetadata.class);
+        when(ceMetadata.getType()).thenReturn("com.redhat.demos.thoughts.created");
+        when(ceMetadata.getSource()).thenReturn(URI.create("/thoughts-backend"));
+        when(ceMetadata.getId()).thenReturn(UUID.randomUUID().toString());
+        when(ceMetadata.getSubject()).thenReturn(Optional.of(thoughtId.toString()));
+
+        return Message.of(event, Metadata.of(ceMetadata));
     }
 
     private void seedTestVectors() {

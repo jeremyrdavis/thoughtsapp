@@ -8,13 +8,18 @@ import com.redhat.demos.evaluation.model.ThoughtStatus;
 import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
+import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.reactive.messaging.Message;
+import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,9 +48,9 @@ public class ErrorHandlingIntegrationTest {
         UUID thoughtId2 = UUID.randomUUID();
         UUID thoughtId3 = UUID.randomUUID();
 
-        ThoughtEvent event1 = createThoughtEvent(thoughtId1, "First thought");
-        ThoughtEvent event2 = createThoughtEvent(thoughtId2, "Second thought");
-        ThoughtEvent event3 = createThoughtEvent(thoughtId3, "Third thought");
+        Message<ThoughtEvent> message1 = createThoughtMessage(thoughtId1, "First thought");
+        Message<ThoughtEvent> message2 = createThoughtMessage(thoughtId2, "Second thought");
+        Message<ThoughtEvent> message3 = createThoughtMessage(thoughtId3, "Third thought");
 
         ThoughtEvaluation mockEval = createMockEvaluation(thoughtId1);
 
@@ -54,9 +59,9 @@ public class ErrorHandlingIntegrationTest {
             .thenThrow(new RuntimeException("Evaluation failed"));
         when(evaluationService.evaluateThought(eq(thoughtId3), any())).thenReturn(mockEval);
 
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event1));
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event2));
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event3));
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message1).toCompletableFuture().join());
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message2).toCompletableFuture().join());
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message3).toCompletableFuture().join());
 
         verify(evaluationService, times(1)).evaluateThought(thoughtId1, "First thought");
         verify(evaluationService, times(1)).evaluateThought(thoughtId2, "Second thought");
@@ -64,8 +69,9 @@ public class ErrorHandlingIntegrationTest {
     }
 
     @Test
-    public void testNullEventHandledGracefully() {
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(null));
+    public void testNullPayloadHandledGracefully() {
+        Message<ThoughtEvent> message = createThoughtMessageWithNullPayload();
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message).toCompletableFuture().join());
         verify(evaluationService, never()).evaluateThought(any(), any());
     }
 
@@ -75,13 +81,13 @@ public class ErrorHandlingIntegrationTest {
         UUID thoughtId2 = UUID.randomUUID();
         UUID thoughtId3 = UUID.randomUUID();
 
-        ThoughtEvent event1 = createThoughtEvent(thoughtId1, null);
-        ThoughtEvent event2 = createThoughtEvent(thoughtId2, "");
-        ThoughtEvent event3 = createThoughtEvent(thoughtId3, "   ");
+        Message<ThoughtEvent> message1 = createThoughtMessage(thoughtId1, null);
+        Message<ThoughtEvent> message2 = createThoughtMessage(thoughtId2, "");
+        Message<ThoughtEvent> message3 = createThoughtMessage(thoughtId3, "   ");
 
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event1));
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event2));
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(event3));
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message1).toCompletableFuture().join());
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message2).toCompletableFuture().join());
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(message3).toCompletableFuture().join());
 
         verify(evaluationService, never()).evaluateThought(any(), any());
     }
@@ -90,14 +96,14 @@ public class ErrorHandlingIntegrationTest {
     public void testMissingRequiredFieldsHandledGracefully() {
         ThoughtEvent eventNoId = new ThoughtEvent();
         eventNoId.setThoughtContent("Content without ID");
-        eventNoId.setEventType("CREATED");
+        Message<ThoughtEvent> messageNoId = wrapWithCloudEventMetadata(eventNoId);
 
         ThoughtEvent eventNoContent = new ThoughtEvent();
         eventNoContent.setThoughtId(UUID.randomUUID());
-        eventNoContent.setEventType("CREATED");
+        Message<ThoughtEvent> messageNoContent = wrapWithCloudEventMetadata(eventNoContent);
 
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(eventNoId));
-        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(eventNoContent));
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(messageNoId).toCompletableFuture().join());
+        assertDoesNotThrow(() -> consumer.consumeThoughtEvent(messageNoContent).toCompletableFuture().join());
 
         verify(evaluationService, never()).evaluateThought(any(), any());
     }
@@ -109,10 +115,10 @@ public class ErrorHandlingIntegrationTest {
         UUID thoughtId3 = UUID.randomUUID();
         UUID thoughtId4 = UUID.randomUUID();
 
-        ThoughtEvent event1 = createThoughtEvent(thoughtId1, "Thought 1");
-        ThoughtEvent event2 = createThoughtEvent(thoughtId2, "Thought 2");
-        ThoughtEvent event3 = createThoughtEvent(thoughtId3, "Thought 3");
-        ThoughtEvent event4 = createThoughtEvent(thoughtId4, "Thought 4");
+        Message<ThoughtEvent> message1 = createThoughtMessage(thoughtId1, "Thought 1");
+        Message<ThoughtEvent> message2 = createThoughtMessage(thoughtId2, "Thought 2");
+        Message<ThoughtEvent> message3 = createThoughtMessage(thoughtId3, "Thought 3");
+        Message<ThoughtEvent> message4 = createThoughtMessage(thoughtId4, "Thought 4");
 
         ThoughtEvaluation mockEval = createMockEvaluation(thoughtId1);
 
@@ -123,15 +129,16 @@ public class ErrorHandlingIntegrationTest {
         when(evaluationService.evaluateThought(eq(thoughtId3), any())).thenReturn(mockEval);
         when(evaluationService.evaluateThought(eq(thoughtId4), any())).thenReturn(mockEval);
 
-        consumer.consumeThoughtEvent(event1);
-        consumer.consumeThoughtEvent(event2);
-        consumer.consumeThoughtEvent(event3);
-        consumer.consumeThoughtEvent(event4);
+        consumer.consumeThoughtEvent(message1).toCompletableFuture().join();
+        consumer.consumeThoughtEvent(message2).toCompletableFuture().join();
+        consumer.consumeThoughtEvent(message3).toCompletableFuture().join();
+        consumer.consumeThoughtEvent(message4).toCompletableFuture().join();
 
         verify(evaluationService, times(4)).evaluateThought(any(UUID.class), anyString());
     }
 
-    private ThoughtEvent createThoughtEvent(UUID thoughtId, String content) {
+    @SuppressWarnings("unchecked")
+    private Message<ThoughtEvent> createThoughtMessage(UUID thoughtId, String content) {
         ThoughtEvent event = new ThoughtEvent();
         event.setThoughtId(thoughtId);
         event.setThoughtContent(content);
@@ -140,8 +147,28 @@ public class ErrorHandlingIntegrationTest {
         event.setStatus("IN_REVIEW");
         event.setCreatedAt(LocalDateTime.now());
         event.setUpdatedAt(LocalDateTime.now());
-        event.setEventType("CREATED");
-        return event;
+        return wrapWithCloudEventMetadata(event);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Message<ThoughtEvent> createThoughtMessageWithNullPayload() {
+        IncomingCloudEventMetadata<ThoughtEvent> ceMetadata = mock(IncomingCloudEventMetadata.class);
+        when(ceMetadata.getType()).thenReturn("com.redhat.demos.thoughts.created");
+        when(ceMetadata.getSource()).thenReturn(URI.create("/thoughts-backend"));
+        when(ceMetadata.getId()).thenReturn(UUID.randomUUID().toString());
+        return Message.of(null, Metadata.of(ceMetadata));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Message<ThoughtEvent> wrapWithCloudEventMetadata(ThoughtEvent event) {
+        IncomingCloudEventMetadata<ThoughtEvent> ceMetadata = mock(IncomingCloudEventMetadata.class);
+        when(ceMetadata.getType()).thenReturn("com.redhat.demos.thoughts.created");
+        when(ceMetadata.getSource()).thenReturn(URI.create("/thoughts-backend"));
+        when(ceMetadata.getId()).thenReturn(UUID.randomUUID().toString());
+        if (event != null && event.getThoughtId() != null) {
+            when(ceMetadata.getSubject()).thenReturn(Optional.of(event.getThoughtId().toString()));
+        }
+        return Message.of(event, Metadata.of(ceMetadata));
     }
 
     private ThoughtEvaluation createMockEvaluation(UUID thoughtId) {
