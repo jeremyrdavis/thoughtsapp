@@ -8,6 +8,7 @@ import com.redhat.demos.evaluation.model.ThoughtStatus;
 import com.redhat.demos.evaluation.model.VectorType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
+import io.vertx.core.json.JsonObject;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import org.eclipse.microprofile.reactive.messaging.Message;
@@ -46,7 +47,7 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId = UUID.randomUUID();
         String thoughtContent = "I am grateful for this beautiful day and all the wonderful opportunities";
 
-        Message<ThoughtEvent> message = createThoughtMessage(thoughtId, thoughtContent);
+        Message<JsonObject> message = createThoughtMessage(thoughtId, thoughtContent);
 
         consumer.consumeThoughtEvent(message).toCompletableFuture().join();
 
@@ -68,7 +69,7 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId = UUID.randomUUID();
         String thoughtContent = "I hate everything and everyone is terrible and awful";
 
-        Message<ThoughtEvent> message = createThoughtMessage(thoughtId, thoughtContent);
+        Message<JsonObject> message = createThoughtMessage(thoughtId, thoughtContent);
 
         consumer.consumeThoughtEvent(message).toCompletableFuture().join();
 
@@ -90,9 +91,9 @@ public class EndToEndEvaluationFlowTest {
         UUID thoughtId2 = UUID.randomUUID();
         UUID thoughtId3 = UUID.randomUUID();
 
-        Message<ThoughtEvent> message1 = createThoughtMessage(thoughtId1, "Positive thought 1");
-        Message<ThoughtEvent> message2 = createThoughtMessage(thoughtId2, "I hate this");
-        Message<ThoughtEvent> message3 = createThoughtMessage(thoughtId3, "Positive thought 2");
+        Message<JsonObject> message1 = createThoughtMessage(thoughtId1, "Positive thought 1");
+        Message<JsonObject> message2 = createThoughtMessage(thoughtId2, "I hate this");
+        Message<JsonObject> message3 = createThoughtMessage(thoughtId3, "Positive thought 2");
 
         consumer.consumeThoughtEvent(message1).toCompletableFuture().join();
         consumer.consumeThoughtEvent(message2).toCompletableFuture().join();
@@ -114,17 +115,19 @@ public class EndToEndEvaluationFlowTest {
     }
 
     @SuppressWarnings("unchecked")
-    private Message<ThoughtEvent> createThoughtMessage(UUID thoughtId, String content) {
-        ThoughtEvent event = new ThoughtEvent();
-        event.setThoughtId(thoughtId);
-        event.setThoughtContent(content);
-        event.setAuthor("Test Author");
-        event.setAuthorBio("Test Bio");
-        event.setStatus("IN_REVIEW");
-        event.setCreatedAt(LocalDateTime.now());
-        event.setUpdatedAt(LocalDateTime.now());
+    private Message<JsonObject> createThoughtMessage(UUID thoughtId, String content) {
+        JsonObject event = new JsonObject()
+            .put("id", thoughtId.toString())
+            .put("content", content)
+            .put("author", "Test Author")
+            .put("authorBio", "Test Bio")
+            .put("status", "IN_REVIEW")
+            .put("thumbsUp", 0)
+            .put("thumbsDown", 0)
+            .put("createdAt", LocalDateTime.now().toString())
+            .put("updatedAt", LocalDateTime.now().toString());
 
-        IncomingCloudEventMetadata<ThoughtEvent> ceMetadata = mock(IncomingCloudEventMetadata.class);
+        IncomingCloudEventMetadata<JsonObject> ceMetadata = mock(IncomingCloudEventMetadata.class);
         when(ceMetadata.getType()).thenReturn("com.redhat.demos.thoughts.created");
         when(ceMetadata.getSource()).thenReturn(URI.create("/thoughts-backend"));
         when(ceMetadata.getId()).thenReturn(UUID.randomUUID().toString());

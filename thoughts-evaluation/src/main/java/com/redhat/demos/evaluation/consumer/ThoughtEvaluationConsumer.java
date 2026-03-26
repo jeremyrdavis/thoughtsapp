@@ -6,6 +6,8 @@ import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.logging.Log;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
@@ -30,11 +32,15 @@ public class ThoughtEvaluationConsumer {
 
     @Incoming("thoughts-events")
     @Blocking
-    public CompletionStage<Void> consumeThoughtEvent(Message<ThoughtEvent> message) {
+    public CompletionStage<Void> consumeThoughtEvent(Message message) {
         UUID correlationId = UUID.randomUUID();
 
+        Log.debugf("[%s] Received message with payload: %s and metadata: %s",
+            correlationId, message.getPayload(), message.getMetadata());
+
         try {
-            ThoughtEvent event = message.getPayload();
+            ThoughtEvent thoughtEvent = ThoughtEvent.fromJson((JsonObject) message.getPayload());
+            Log.debugf("[%s] Deserialized ThoughtEvent: %s", correlationId, thoughtEvent);
 
             // Extract CloudEvents metadata
             Optional<IncomingCloudEventMetadata> ceMetadata =
@@ -49,27 +55,29 @@ public class ThoughtEvaluationConsumer {
             Log.debugf("[%s] Received CloudEvent [type=%s, source=%s, subject=%s]",
                 correlationId, eventType, source, subject);
 
-            if (event == null) {
+            if (thoughtEvent == null) {
                 Log.warnf("[%s] Failed to deserialize event data, skipping", correlationId);
                 return message.ack();
             }
 
+//            ThoughtEvent thoughtEvent = ThoughtEvent.fromJson(event);
+
             // Filter for thought-created events only using CloudEvents type
             if (!EVENT_TYPE_CREATED.equals(eventType)) {
                 Log.debugf("[%s] Ignoring non-created event type: %s for thought: %s",
-                    correlationId, eventType, event.getThoughtId());
+                    correlationId, eventType, thoughtEvent.id());
                 return message.ack();
             }
 
-            UUID thoughtId = event.getThoughtId();
-            String thoughtContent = event.getThoughtContent();
+            UUID thoughtId = thoughtEvent.id();
+            String thoughtContent = thoughtEvent.content();
 
             if (thoughtId == null || thoughtContent == null || thoughtContent.trim().isEmpty()) {
                 Log.warnf("[%s] Event missing required fields (thoughtId or content), skipping", correlationId);
                 return message.ack();
             }
 
-            Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, event);
+            Log.infof("[%s] Processing thought-created event for thought: %s", correlationId, thoughtEvent);
 
             ThoughtEvaluation thoughtEvaluation = evaluationService.evaluateThought(thoughtId, thoughtContent);
             Log.debugf("[%s] Evaluation result for thought %s: %s", correlationId, thoughtId, thoughtEvaluation);
