@@ -1,6 +1,9 @@
 package com.redhat.demos.evaluation.consumer;
 
 import com.redhat.demos.evaluation.dto.ThoughtEvent;
+import com.redhat.demos.evaluation.model.ThoughtEvaluation;
+import com.redhat.demos.evaluation.model.ThoughtStatus;
+import com.redhat.demos.evaluation.service.EvaluationEventService;
 import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -12,6 +15,7 @@ import org.eclipse.microprofile.reactive.messaging.Metadata;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -28,6 +32,9 @@ class ThoughtEvaluationConsumerTest {
 
     @InjectMock
     EvaluationService evaluationService;
+
+    @InjectMock
+    EvaluationEventService evaluationEventService;
 
     @Test
     void testConsumeValidThoughtCreatedEvent() {
@@ -144,6 +151,51 @@ class ThoughtEvaluationConsumerTest {
         verify(evaluationService, times(1)).evaluateThought(idCaptor.capture(), contentCaptor.capture());
         assertEquals(expectedId, idCaptor.getValue());
         assertEquals(expectedContent, contentCaptor.getValue());
+    }
+
+    @Test
+    void testPublishEvaluationResultAfterSuccessfulEvaluation() {
+        UUID thoughtId = UUID.randomUUID();
+        String thoughtContent = "A thought to evaluate and publish";
+
+        ThoughtEvaluation mockEval = new ThoughtEvaluation();
+        mockEval.id = UUID.randomUUID();
+        mockEval.thoughtId = thoughtId;
+        mockEval.status = ThoughtStatus.APPROVED;
+        mockEval.similarityScore = new BigDecimal("0.42");
+        mockEval.metadata = "{}";
+
+        when(evaluationService.evaluateThought(any(UUID.class), anyString())).thenReturn(mockEval);
+
+        Message<JsonObject> message = createThoughtMessage(thoughtId, thoughtContent, "com.redhat.demos.thoughts.created");
+
+        consumer.consumeThoughtEvent(message).toCompletableFuture().join();
+
+        verify(evaluationEventService, times(1)).publishEvaluationCompleted(mockEval);
+    }
+
+    @Test
+    void testDoNotPublishWhenEvaluationFails() {
+        UUID thoughtId = UUID.randomUUID();
+
+        Message<JsonObject> message = createThoughtMessage(thoughtId, "Some content", "com.redhat.demos.thoughts.created");
+
+        doThrow(new RuntimeException("Evaluation failed")).when(evaluationService)
+            .evaluateThought(any(), any());
+
+        consumer.consumeThoughtEvent(message).toCompletableFuture().join();
+
+        verify(evaluationEventService, never()).publishEvaluationCompleted(any());
+    }
+
+    @Test
+    void testDoNotPublishForNonCreatedEventType() {
+        UUID thoughtId = UUID.randomUUID();
+        Message<JsonObject> message = createThoughtMessage(thoughtId, "Some content", "com.redhat.demos.thoughts.updated");
+
+        consumer.consumeThoughtEvent(message).toCompletableFuture().join();
+
+        verify(evaluationEventService, never()).publishEvaluationCompleted(any());
     }
 
     @Test

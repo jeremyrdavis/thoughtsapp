@@ -29,7 +29,7 @@ public class EvaluationServiceImpl implements EvaluationService {
     @Inject
     EntityManager em;
 
-    @ConfigProperty(name = "evaluation.similarity.threshold", defaultValue = "0.85")
+    @ConfigProperty(name = "evaluation.similarity.threshold", defaultValue = "0.51")
     double similarityThreshold;
 
     @ConfigProperty(name = "evaluation.model.name", defaultValue = "nomic-embed-text")

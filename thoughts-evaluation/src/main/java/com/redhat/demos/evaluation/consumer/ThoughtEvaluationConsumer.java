@@ -2,11 +2,11 @@ package com.redhat.demos.evaluation.consumer;
 
 import com.redhat.demos.evaluation.dto.ThoughtEvent;
 import com.redhat.demos.evaluation.model.ThoughtEvaluation;
+import com.redhat.demos.evaluation.service.EvaluationEventService;
 import com.redhat.demos.evaluation.service.EvaluationService;
 import io.quarkus.logging.Log;
 import io.smallrye.reactive.messaging.annotations.Blocking;
 import io.smallrye.reactive.messaging.ce.IncomingCloudEventMetadata;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -29,6 +29,9 @@ public class ThoughtEvaluationConsumer {
 
     @Inject
     EvaluationService evaluationService;
+
+    @Inject
+    EvaluationEventService evaluationEventService;
 
     @Incoming("thoughts-events")
     @Blocking
@@ -60,8 +63,6 @@ public class ThoughtEvaluationConsumer {
                 return message.ack();
             }
 
-//            ThoughtEvent thoughtEvent = ThoughtEvent.fromJson(event);
-
             // Filter for thought-created events only using CloudEvents type
             if (!EVENT_TYPE_CREATED.equals(eventType)) {
                 Log.debugf("[%s] Ignoring non-created event type: %s for thought: %s",
@@ -81,6 +82,8 @@ public class ThoughtEvaluationConsumer {
 
             ThoughtEvaluation thoughtEvaluation = evaluationService.evaluateThought(thoughtId, thoughtContent);
             Log.debugf("[%s] Evaluation result for thought %s: %s", correlationId, thoughtId, thoughtEvaluation);
+
+            evaluationEventService.publishEvaluationCompleted(thoughtEvaluation);
 
             Log.infof("[%s] Successfully processed thought: %s", correlationId, thoughtId);
 
