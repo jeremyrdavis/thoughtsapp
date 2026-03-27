@@ -3,13 +3,18 @@ package com.redhat.demos.thoughts.service;
 import com.redhat.demos.thoughts.model.Thought;
 import io.quarkus.test.junit.QuarkusTest;
 import io.restassured.http.ContentType;
+import io.smallrye.reactive.messaging.ce.OutgoingCloudEventMetadata;
 import io.smallrye.reactive.messaging.memory.InMemoryConnector;
 import io.smallrye.reactive.messaging.memory.InMemorySink;
 import jakarta.enterprise.inject.Any;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.reactive.messaging.Message;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.net.URI;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.*;
@@ -41,8 +46,16 @@ public class ThoughtEventServiceTest {
                 .statusCode(201);
 
         assertEquals(1, thoughtsSink.received().size());
-        Thought published = thoughtsSink.received().get(0).getPayload();
+        Message<Thought> message = thoughtsSink.received().get(0);
+        Thought published = message.getPayload();
         assertEquals("Event publishing test for create operation", published.content);
+
+        Optional<OutgoingCloudEventMetadata> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class);
+        assertTrue(ceMetadata.isPresent(), "CloudEvents metadata should be present");
+        assertEquals("com.redhat.demos.thoughts.created", ceMetadata.get().getType());
+        assertEquals(URI.create("/thoughts-backend"), ceMetadata.get().getSource());
+        assertEquals(Optional.of(published.id.toString()), ceMetadata.get().getSubject());
+        assertNotNull(ceMetadata.get().getId());
     }
 
     @Test
@@ -60,8 +73,14 @@ public class ThoughtEventServiceTest {
                 .statusCode(200);
 
         assertEquals(1, thoughtsSink.received().size());
-        Thought published = thoughtsSink.received().get(0).getPayload();
+        Message<Thought> message = thoughtsSink.received().get(0);
+        Thought published = message.getPayload();
         assertEquals("Updated content for event publishing", published.content);
+
+        Optional<OutgoingCloudEventMetadata> ceMetadata = message.getMetadata(OutgoingCloudEventMetadata.class);
+        assertTrue(ceMetadata.isPresent(), "CloudEvents metadata should be present");
+        assertEquals("com.redhat.demos.thoughts.updated", ceMetadata.get().getType());
+        assertEquals(URI.create("/thoughts-backend"), ceMetadata.get().getSource());
     }
 
     @Test
@@ -77,6 +96,10 @@ public class ThoughtEventServiceTest {
                 .statusCode(204);
 
         assertEquals(1, thoughtsSink.received().size());
+        Message<Thought> deleteMessage = thoughtsSink.received().get(0);
+        Optional<OutgoingCloudEventMetadata> ceMetadata = deleteMessage.getMetadata(OutgoingCloudEventMetadata.class);
+        assertTrue(ceMetadata.isPresent(), "CloudEvents metadata should be present");
+        assertEquals("com.redhat.demos.thoughts.deleted", ceMetadata.get().getType());
     }
 
     @Test
