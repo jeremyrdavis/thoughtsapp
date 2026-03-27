@@ -4,121 +4,145 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**Positive Thoughts** is a microservices demonstration application that helps enterprise Java developers and solutions architects understand modern cloud-native development. It showcases Red Hat OpenShift, Quarkus, and AI integration through an interactive workshop and demo experience.
+**Positive Thoughts** is a microservices demo application showcasing Red Hat OpenShift, Quarkus, and AI integration. It manages a collection of positive thoughts (quotes) with event-driven AI evaluation. Designed for solutions architects running demos and enterprise Java developers learning cloud-native patterns.
 
-This repository contains both the application microservices and an Agent OS configuration for structured development workflows.
+**Key versions:** Java 25, Quarkus 3.31.2, Langchain4j 1.6.0
 
-## Directory Structure
+## Build and Dev Commands
 
-```
-DevHub/
-├── thoughts-backend/          # Quarkus backend REST API (CRUD, ratings, Kafka events)
-│   ├── src/main/java/com/redhat/demos/thoughts/
-│   │   ├── model/             # Thought, ThoughtEvaluation, ThoughtStatus entities
-│   │   ├── resource/          # ThoughtResource (REST), EvaluationUIResource (Qute)
-│   │   ├── service/           # ThoughtEventService (Kafka publishing)
-│   │   ├── dto/               # EvaluationDTO, EvaluationStatsDTO
-│   │   ├── exception/         # Exception mappers
-│   │   ├── filter/            # CorsFilter
-│   │   ├── health/            # Database, Kafka, LLM health checks
-│   │   └── metrics/           # EvaluationMetrics
-│   └── src/main/resources/
-│       ├── templates/         # Qute templates (evaluations.html, stats.html)
-│       ├── db/migration/      # Flyway migrations (V1-V5)
-│       └── import.sql         # Seed data
-│
-├── thoughts-frontend/         # Next.js consumer UI (static site, shadcn/ui)
-│   ├── app/                   # page.tsx (random thought display + rating)
-│   ├── lib/                   # api-client.ts, types.ts
-│   └── components/ui/         # shadcn/ui components (button, skeleton, sonner)
-│
-├── thoughts-evaluation/       # Quarkus AI evaluation service
-│   ├── src/main/java/com/redhat/demos/evaluation/
-│   │   ├── consumer/          # ThoughtEvaluationConsumer (Kafka)
-│   │   ├── model/             # ThoughtEvaluation, EvaluationVector, VectorType
-│   │   ├── resource/          # EvaluationResource (REST)
-│   │   ├── service/           # EvaluationService, EmbeddingService, VectorSimilarityService
-│   │   └── dto/               # EvaluationDTO, EvaluationStatsDTO, ThoughtEvent
-│   └── src/main/resources/
-│       └── db/migration/      # Flyway migrations (V1-V3)
-│
-├── thoughts-admin/            # Quarkus admin UI with Qute templating (NEW)
-│   ├── src/main/java/com/redhat/demos/thoughts/admin/
-│   │   ├── model/             # Thought, ThoughtEvaluation, ThoughtStatus (mirrors backend)
-│   │   ├── resource/          # DashboardResource, ThoughtResource, RatingsResource, EvaluationResource
-│   │   └── health/            # DatabaseConnectionHealthCheck
-│   └── src/main/resources/
-│       ├── templates/         # Qute templates (layout.html + per-resource templates)
-│       └── import.sql         # Dev seed data
-│
-├── infrastructure/            # OpenShift deployment configs
-│   ├── kafka/                 # AMQ Streams operator, cluster, topics (YAML + setup.sh)
-│   └── postgresql/            # PostgreSQL secret, PVC, deployment, service (YAML + setup.sh)
-│
-├── agent-os/                  # Agent OS configuration
-│   ├── config.yml             # Agent OS version and settings
-│   ├── product/               # mission.md, roadmap.md, tech-stack.md
-│   ├── standards/             # Coding standards (global/, backend/, frontend/, testing/)
-│   └── specs/                 # Feature specifications
-│       ├── 2026-02-04-thoughts-service-backend/
-│       ├── 2026-02-04-frontend-application/
-│       ├── 2026-02-05-add-author-bio-to-quotes/
-│       ├── 2026-02-09-ai-evaluation-service/
-│       └── 2026-03-09-quarkus-admin-site-qute/
-│
-├── .claude/                   # Claude Code agent and command definitions
-│   ├── commands/agent-os/     # Skill definitions (/shape-spec, /write-spec, etc.)
-│   └── agents/agent-os/       # Subagent definitions (spec-writer, implementer, etc.)
-│
-├── quotes.json                # Raw quotes data
-├── quotes_transformed.json    # Transformed quotes for import
-└── README.md
+### Quarkus Backend Services
+
+Each Quarkus service has its own Maven wrapper. Quarkus dev services auto-provision PostgreSQL and Kafka containers (requires Docker/Podman running).
+
+```bash
+# thoughts-backend (port 8080)
+cd thoughts-backend && ./mvnw quarkus:dev
+
+# thoughts-evaluation (port 8088)
+cd thoughts-evaluation && ./mvnw quarkus:dev
 ```
 
-## Tech Stack
+Run tests:
+```bash
+cd thoughts-backend && ./mvnw test
+cd thoughts-evaluation && ./mvnw test
 
-- **Backend framework:** Quarkus (Java 25, Maven)
-- **Frontend:** Next.js + shadcn/ui + Tailwind CSS (compiled to static site)
-- **Admin UI:** Quarkus Qute templating + Bootstrap 5
-- **Database:** PostgreSQL (Hibernate Panache, Flyway migrations)
-- **Messaging:** Apache Kafka (Red Hat AMQ Streams)
-- **AI:** Vector similarity evaluation via embedding service
-- **Deployment:** Red Hat OpenShift (Kubernetes manifests)
-- **Testing:** JUnit 5, REST Assured, Testcontainers
+# Single test class
+cd thoughts-backend && ./mvnw test -Dtest=ThoughtResourceTest
+cd thoughts-evaluation && ./mvnw test -Dtest=EvaluationServiceTest
+
+# Integration tests (skipped by default via skipITs=true)
+cd thoughts-backend && ./mvnw verify -DskipITs=false
+```
+
+Build:
+```bash
+cd thoughts-backend && ./mvnw package
+cd thoughts-evaluation && ./mvnw package
+```
+
+### Frontend (Next.js, port 3000)
+
+```bash
+cd thoughts-frontend && npm install && npm run dev
+npm test              # Jest
+npm run test:watch
+```
+
+### Admin UI (Vite + React, port 3003)
+
+```bash
+cd thoughts-admin-ui && npm install && npm run dev
+npm run lint          # ESLint
+npm run test          # Vitest
+npm run test:watch
+```
 
 ## Service Architecture
 
-| Service | Port | Purpose | Database | Kafka |
-|---------|------|---------|----------|-------|
-| `thoughts-backend` | 8080 | REST API for thoughts CRUD, ratings, Kafka events | PostgreSQL (read/write, schema owner) | Publishes to `thoughts.events` |
-| `thoughts-frontend` | 3000 | Consumer UI - displays random thoughts, collects ratings | None (API client) | None |
-| `thoughts-evaluation` | 8082 | AI-powered thought evaluation via vector similarity | PostgreSQL (read/write) | Consumes from `thoughts.events` |
-| `thoughts-admin` | 8081 | Admin dashboard - manage thoughts, view ratings/evaluations | PostgreSQL (read/write, no schema mgmt) | None |
+| Service | Dir | Port | Stack | Role |
+|---------|-----|------|-------|------|
+| Backend API | `thoughts-backend/` | 8080 | Quarkus, Panache, Kafka producer | CRUD, ratings, publishes to `thoughts.events` topic |
+| Evaluation | `thoughts-evaluation/` | 8088 | Quarkus, Langchain4j, Kafka consumer | Consumes events, vector similarity evaluation via LLM embeddings |
+| Frontend | `thoughts-frontend/` | 3000 | Next.js, shadcn/ui, Tailwind | Public UI: random thought display + rating |
+| Admin UI | `thoughts-admin-ui/` | 3003 | Vite, React, shadcn/ui, TanStack Query | Admin CRUD: manage thoughts, view ratings/evaluations |
 
 ### Data Flow
 ```
-User → thoughts-frontend → thoughts-backend → PostgreSQL
-                                    ↓ (Kafka)
-                           thoughts-evaluation → PostgreSQL
+User -> thoughts-frontend -> thoughts-backend -> PostgreSQL
+                                    | (Kafka: thoughts.events)
+                           thoughts-evaluation -> PostgreSQL
 
-Admin → thoughts-admin → PostgreSQL (direct, shared DB)
+Admin -> thoughts-admin-ui -> thoughts-backend (REST)
 ```
+
+All Quarkus services share a PostgreSQL database. Backend owns schema (Hibernate `drop-and-create` in dev — no Flyway). Evaluation uses Flyway migrations with pgvector (`pgvector/pgvector:pg17` image in dev/test).
+
+### REST Endpoints
+
+**thoughts-backend** (`/thoughts`):
+- `GET /thoughts` (paginated), `POST /thoughts`, `GET /thoughts/{id}`, `PUT /thoughts/{id}`, `DELETE /thoughts/{id}`
+- `GET /thoughts/random`, `POST /thoughts/thumbsup/{id}`, `POST /thoughts/thumbsdown/{id}`
+
+**thoughts-evaluation**:
+- `GET /evaluations` (paginated), `GET /evaluations/thought/{id}`, `GET /evaluations/stats`
+- `GET /vectors/status`, `POST /vectors/initialize`
+
+### Package Structure
+
+- **Backend:** `com.redhat.demos.thoughts.*` — model, resource, service, consumer, dto, exception, health, metrics, filter
+- **Evaluation:** `com.redhat.demos.evaluation.*` — model, resource, service, consumer, dto, exception
 
 ## Key Patterns
 
 - **Entities:** `PanacheEntityBase` with UUID primary keys, `@PrePersist`/`@PreUpdate` lifecycle hooks
-- **REST resources:** JAX-RS with `@Path`, OpenAPI documentation
-- **Qute templates:** `@CheckedTemplate` static inner classes, `{#include layout}` inheritance
-- **Configuration:** Environment variables for prod, dev services for dev/test profiles
-- **Health:** SmallRye Health (liveness + readiness), Micrometer Prometheus metrics
-- **Frontend API client:** `NEXT_PUBLIC_API_BASE_URL` env var, defaults to `http://localhost:8080`
+- **REST:** JAX-RS `@Path` resources with OpenAPI docs
+- **Kafka:** Backend publishes via SmallRye Reactive Messaging (`thoughts-events` channel). Tests use `smallrye-in-memory` connector
+- **Evaluation uses Langchain4j** with OpenAI-compatible endpoint (defaults to Ollama at `localhost:11434/v1` in dev). Embedding model: `nomic-embed-text`
+- **Qute templates:** `@CheckedTemplate` static inner classes, `{#include layout}` inheritance (used in evaluation service UI)
+- **Frontend API client:** Object-based service in `lib/api-client.ts` (`apiClient.getRandomThought()`)
+- **Admin UI API client:** Functional exports in `src/lib/api.ts` (`fetchThoughts()`, `createThought()`), uses TanStack Query with react-hook-form + Zod validation. Connects to both backend (port 8080) and evaluation (port 8088) APIs
+- **Config profiles:** Quarkus `%dev`/`%test`/`%prod` profiles. Dev services handle infrastructure automatically
+- **Health:** SmallRye Health (liveness + readiness) at `/q/health/live` and `/q/health/ready`
+- **Metrics:** Micrometer Prometheus
+
+## Environment Variables
+
+| Variable | Service | Default | Purpose |
+|----------|---------|---------|---------|
+| `NEXT_PUBLIC_API_BASE_URL` | Frontend | `http://localhost:8080` | Backend API URL |
+| `VITE_API_BASE_URL` | Admin UI | `http://localhost:8080` | Backend API URL |
+| `VITE_EVALUATION_API_BASE_URL` | Admin UI | `http://localhost:8088` | Evaluation API URL |
+| `VITE_ADMIN_USER` / `VITE_ADMIN_PASS` | Admin UI | — | Admin login credentials |
+| `OPENSHIFT_AI_ENDPOINT_URL` | Evaluation | `http://localhost:11434/v1` | LLM endpoint (Ollama-compatible) |
+| `OPENSHIFT_AI_API_KEY` | Evaluation | `dummy-key` | LLM API key |
+| `EMBEDDING_MODEL_NAME` | Evaluation | `nomic-embed-text` | Embedding model |
+| `EVALUATION_SIMILARITY_THRESHOLD` | Evaluation | `0.85` | Cosine similarity threshold |
+
+## Testing Notes
+
+- Backend tests use Testcontainers (PostgreSQL via dev services) with in-memory Kafka connector
+- Evaluation tests use pgvector Docker image and mock the Langchain4j LLM endpoint
+- Evaluation service has integration tests for end-to-end flow, error handling, and threshold configuration
+- Frontend uses Jest + React Testing Library
+- Admin UI uses Vitest + React Testing Library
+
+## Infrastructure
+
+`infrastructure/` contains OpenShift deployment manifests:
+- `postgresql/` — Secret, PVC, Deployment, Service + setup/teardown scripts
+- `kafka/` — AMQ Streams operator subscription, Kafka cluster, topics + setup/teardown scripts
+
+Dockerfiles for backend services are in `thoughts-backend/src/main/docker/` (JVM, native, native-micro, legacy-jar variants).
 
 ## Agent OS Workflow
 
-1. **Product Planning** (`/plan-product`) - Creates mission, roadmap, tech stack docs
-2. **Spec Shaping** (`/shape-spec`) - Gathers requirements through questions
-3. **Spec Writing** (`/write-spec`) - Creates formal spec from requirements
-4. **Task Creation** (`/create-tasks`) - Breaks spec into actionable task groups
-5. **Implementation** (`/implement-tasks` or `/orchestrate-tasks`) - Builds the feature
+The `agent-os/` directory contains structured development workflow configuration:
 
-Each spec lives in `agent-os/specs/YYYY-MM-DD-spec-name/` with `planning/requirements.md`, `spec.md`, `tasks.md`, and `verifications/final-verification.md`.
+1. `/plan-product` - Creates mission, roadmap, tech stack docs
+2. `/shape-spec` - Gathers requirements through questions
+3. `/write-spec` - Creates formal spec from requirements
+4. `/create-tasks` - Breaks spec into actionable task groups
+5. `/implement-tasks` or `/orchestrate-tasks` - Builds the feature
+
+Specs live in `agent-os/specs/YYYY-MM-DD-spec-name/`. Coding standards are in `agent-os/standards/` (global, backend, frontend, testing).
