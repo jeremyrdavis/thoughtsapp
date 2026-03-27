@@ -5,9 +5,12 @@ import com.redhat.demos.evaluation.dto.VectorStatusDTO;
 import com.redhat.demos.evaluation.model.EvaluationVector;
 import com.redhat.demos.evaluation.model.VectorType;
 import io.quarkus.logging.Log;
+import io.quarkus.runtime.StartupEvent;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -18,16 +21,33 @@ public class VectorInitializationService {
     private static final Map<String, VectorType> REFERENCE_PHRASES = new LinkedHashMap<>();
 
     static {
-        REFERENCE_PHRASES.put("Encouraging and uplifting language", VectorType.POSITIVE);
-        REFERENCE_PHRASES.put("Optimistic and hopeful perspective", VectorType.POSITIVE);
-        REFERENCE_PHRASES.put("Gratitude and appreciation expressions", VectorType.POSITIVE);
-        REFERENCE_PHRASES.put("Hateful or discriminatory language", VectorType.NEGATIVE);
-        REFERENCE_PHRASES.put("Violent or threatening content", VectorType.NEGATIVE);
-        REFERENCE_PHRASES.put("Profanity and abusive language", VectorType.NEGATIVE);
+        REFERENCE_PHRASES.put("Who is the happier man, he who has braved the storm of life and lived, or he who has stayed securely on shore and merely existed?", VectorType.POSITIVE);
+        REFERENCE_PHRASES.put("Every single cell in the human body replaces itself over a period of seven years. That means there’s not even the smallest part of you now that was part of you seven years ago.", VectorType.POSITIVE);
+        REFERENCE_PHRASES.put("I hope that in this year to come, you make mistakes. Because if you are making mistakes, then you are making new things, trying new things, learning, living, pushing yourself, changing yourself, changing your world. You’re doing things you've never done before, and more importantly, you’re doing something.", VectorType.POSITIVE);
+        REFERENCE_PHRASES.put("Death is the solution to all problems. No man - no problem.", VectorType.NEGATIVE);
+        REFERENCE_PHRASES.put("There are corpses on Mount Everest that were once highly motivated people.", VectorType.NEGATIVE);
+        REFERENCE_PHRASES.put("I can picture in my mind a world without war, a world without hate. And I can picture us attacking that world, because they'd never expect it.", VectorType.NEGATIVE);
     }
 
     @Inject
     EmbeddingService embeddingService;
+
+    @ConfigProperty(name = "evaluation.vectors.auto-initialize", defaultValue = "true")
+    boolean autoInitialize;
+
+    void onStartup(@Observes StartupEvent event) {
+        if (!autoInitialize) {
+            Log.info("Vector auto-initialization disabled");
+            return;
+        }
+        long existing = EvaluationVector.count();
+        if (existing == 0) {
+            Log.info("No evaluation vectors found — auto-initializing reference vectors");
+            initializeVectors();
+        } else {
+            Log.infof("Found %d existing evaluation vectors, skipping auto-initialization", existing);
+        }
+    }
 
     @Transactional
     public VectorInitializationResultDTO initializeVectors() {
@@ -48,7 +68,7 @@ public class VectorInitializationService {
             EvaluationVector vector = new EvaluationVector();
             vector.embedding = embedding;
             vector.vectorType = type;
-            vector.label = phrase;
+            vector.label = phrase.length() > 255 ? phrase.substring(0, 255) : phrase;
             vector.persist();
 
             if (type == VectorType.POSITIVE) {
